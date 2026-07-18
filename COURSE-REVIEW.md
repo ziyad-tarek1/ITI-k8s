@@ -2,7 +2,7 @@
 
 **Reviewed:** `k8s-slides.html` — 56 slides, 8 sections, 8 labs
 **Target:** 4 full training days, absolute beginners → solid intermediate
-**Status:** Analysis only. No slides modified.
+**Status:** Analysis only. No slides modified. Build decisions settled — see §12.
 
 ---
 
@@ -485,16 +485,85 @@ Keep **Helm, metrics-server, StatefulSets, RBAC and DaemonSets** as genuine intr
 
 ---
 
-## 12. Decisions I Need From You Before Building
+## 12. Decisions — SETTLED
 
-| # | Decision | Recommendation |
+| # | Decision | Resolution |
 |---|---|---|
-| 1 | **Container images** — Voting App builds from source (Python/Node/Java). Building 4 images per student is slow. | Use the prebuilt `dockersamples/examplevotingapp_*` images for labs; add **one optional Day-1 exercise** building `vote` locally + `kind load docker-image` as a bridge from the Docker course. |
-| 2 | **NetworkPolicy needs an enforcing CNI.** kind's default *kindnet ignores NetworkPolicy* — Lab 29 would silently "pass" while enforcing nothing, teaching the wrong lesson. | Create the Day-4 cluster with `--disable-default-cni` + **Calico**, or run Day 4 on **k3s**. Must be decided before Lab 29 is written. |
-| 3 | **LoadBalancer is never demonstrated** (kind has no LB). | Add **MetalLB** on Day 4, or switch to k3s (ServiceLB built in). Otherwise `type: LoadBalancer` stays theory for 4 days. |
-| 4 | **Deliverable shape** — one 185-slide deck, or four day-decks? | **Four files** (`day1.html`…`day4.html`) + an index page. A 185-slide single file is unwieldy to teach from and slow to load. Pages index links all four. |
-| 5 | **Voting App manifests** — students type YAML or clone it? | Ship a `k8s-manifests/day1..day4/` directory in the repo as the answer key; students type the small ones, clone the long ones. |
-| 6 | Keep the existing kind-based lab track, or move to k3s? | Keep kind (labs 1–2 are solid); patch it with Calico + MetalLB for Day 4. |
+| 1 | Deliverable shape | **One combined deck** — everything stays in `k8s-slides.html`. Mitigation for size: see §12a. |
+| 2 | Container images | **Students build from source, in-class, step by step.** Every build command lives in the slides — no prebuilt shortcut, no "clone this". This is a full end-to-end lab (Day 1). |
+| 3 | NetworkPolicy CNI | **kind + Calico** (`--disable-default-cni`) for the Day-4 cluster. |
+| 4 | LoadBalancer demo | **MetalLB** on Day 4, so `type: LoadBalancer` is finally hands-on rather than theory. |
+| 5 | Lab track | **Keep kind** throughout; patch with Calico + MetalLB for Day 4. |
+| 6 | Manifests | Slides carry every manifest inline (consistent with #2). `k8s-manifests/` ships as an answer key only. |
+
+### 12a. Consequences of "one combined deck"
+
+A ~185-slide single file lands around 4–5 MB. Two things to handle when building:
+
+- **Keep the existing section-jump roadmap** (slide 3) and extend it to four day-groups, so
+  navigating to Day 3 mid-course is one click, not 90 arrow presses.
+- **Add a day marker to the footer** (`Day 2 · Kubernetes · ITI DevOps 2026`) so students
+  screenshotting a slide know which day it came from.
+
+### 12b. Consequences of "build from source in class" — ⚠ two real risks
+
+**Risk 1 — the Java worker build is slow.** `worker/Dockerfile` is Maven-based
+(`maven:3.9-amazoncorretto-8`) and runs `mvn dependency:resolve`, `mvn verify`, then
+`mvn package`. On a cold Maven cache this pulls the better part of a Maven repo — **easily
+5–15 minutes**, and it is the first thing that will stall a 25-student room.
+
+*Mitigation to build into the slides:* start the `worker` build **first**, in the background,
+and teach the `vote` and `result` builds (both fast) while it runs. Make this explicit in the
+lab, not an afterthought — a slide that says "kick this off now, we'll come back to it".
+
+**Risk 2 — `result` is multi-stage.** Its Dockerfile has `base` → `dev` → `prod` stages, and
+`docker-compose.yml` builds `target: dev` (nodemon). A plain `docker build` yields `prod`,
+which is what we want for Kubernetes. Say so explicitly — students carrying Compose habits
+will reach for `--target dev` and get nodemon in a Deployment.
+
+Also required in the build lab: **`kind load docker-image`** for each image, plus
+`imagePullPolicy: IfNotPresent` in every manifest. Without both, kind will try to pull the
+locally-built tag from Docker Hub and every Pod lands in `ErrImagePull`. This is the single
+most likely way Day 1 derails.
+
+---
+
+## 12c. ⚠ App Source Findings That Change the Day-3 Plan
+
+I read the app source. Two findings materially affect the Config/Secret labs.
+
+**Finding 1 — `vote` is genuinely ConfigMap-ready. ✅**
+`vote/app.py` reads `OPTION_A` / `OPTION_B` from the environment with defaults
+(`"Cats"` / `"Dogs"`). Students change a ConfigMap, restart, and **watch the UI text change**.
+This is an authentic, visually-obvious ConfigMap lab — exactly what Day 3 needs.
+
+**Finding 2 — the flagship Secret lab is NOT authentic as-is. ⚠**
+The DB credentials are **hardcoded in two apps**:
+
+- `result/server.js:26` → `connectionString: 'postgres://postgres:postgres@db/postgres'`
+- `worker/Worker.java:75` → `DriverManager.getConnection(url, "postgres", "postgres")`
+
+So a `POSTGRES_PASSWORD` Secret can only feed the **postgres server** Deployment. If a student
+changes the password to anything other than `postgres`, `result` and `worker` break — because
+they still send the hardcoded literal. The lab would teach that Secrets are decorative.
+
+Related: `vote/app.py:16` hardcodes `Redis(host="redis")` and the worker hardcodes the `redis`
+and `db` hostnames. **Therefore the Services must be named exactly `redis` and `db`.** A student
+who names a Service `postgres` gets a silently broken app. Worth turning into a teaching point
+(DNS name == Service name) with a loud ⚠, rather than letting it bite them.
+
+**Recommended fix — patch the two apps to read env vars** (~3 lines each):
+`result/server.js` and `Worker.java` take `DB_HOST` / `DB_USER` / `DB_PASSWORD` from the
+environment with the current values as defaults. This:
+- makes the Day-3 Secret lab **genuinely end-to-end** (change the Secret → the whole app follows);
+- is self-consistent with decision #2 — students build from source, so they build the patched code;
+- is itself a teaching moment: *"this is why 12-factor apps read config from the environment"*.
+
+Backward compatible — with defaults in place, `docker compose up` still works unchanged.
+
+**This needs your OK before Day 3 is written** — it's a change to your app repo, not just slides.
+
+---
 
 ---
 
@@ -504,13 +573,15 @@ Each phase = one commit, per your git-per-step preference.
 
 | Phase | Work | Est. |
 |---|---|---|
-| 0 | Fix the two defects (§5) in the current deck | 1 commit |
-| 1 | Split into 4 day-decks + shared CSS/JS + index page | 1 commit |
-| 2 | Day 1: reorder (architecture before distributions), add namespaces/labels/pod-lifecycle/env/debugging + Voting App Lab 6 | 2–3 commits |
-| 3 | Day 2: ReplicaSet, rollout subcommands, headless/Endpoints, DNS lab, multi-container/init/sidecar, Voting App Deployments+Services | 2–3 commits |
-| 4 | Day 3: ConfigMaps, Secrets, storage labs, StatefulSet intro, probes + the payoff lab | 3 commits |
-| 5 | Day 4: requests/limits/QoS, scheduling, metrics-server/HPA, Jobs, Ingress, CNI/NetworkPolicy, Helm, troubleshooting, final challenge | 3–4 commits |
-| 6 | `k8s-manifests/` answer key for all 4 days | 1 commit |
+| 0 | Fix the two defects (§5); add day-markers to the footer + 4-day roadmap nav (§12a) | 1 commit |
+| 1 | **Patch `result` + `worker` to read DB config from env** (§12c) — *needs your OK* | 1 commit |
+| 2 | Day 1 reorder: architecture before distributions; trim distributions to 2 slides | 1 commit |
+| 3 | Day 1 new content: namespaces, labels/selectors/annotations, Pod lifecycle, env/command/args, debugging toolkit | 2 commits |
+| 4 | Day 1 labs: **image build lab** (worker-first, `kind load`, `imagePullPolicy`), Voting App as bare Pods, planted failure #1 | 1–2 commits |
+| 5 | Day 2: ReplicaSet, rollout subcommands, headless/Endpoints, DNS lab, multi-container/init/sidecar, Voting App → Deployments + Services | 2–3 commits |
+| 6 | Day 3: ConfigMaps (`OPTION_A/B`), Secrets, storage labs, StatefulSet intro, probes + the zero-downtime payoff lab | 3 commits |
+| 7 | Day 4: requests/limits/QoS, scheduling, metrics-server/HPA, Jobs, Ingress, CNI, **Calico + MetalLB cluster**, NetworkPolicy, Helm, troubleshooting, final challenge | 3–4 commits |
+| 8 | `k8s-manifests/` answer key (all 4 days) | 1 commit |
 | 7 | Diagrams pass (§8) + interview/best-practice slides | 2 commits |
 | 8 | Full lab dry-run on a clean kind cluster, publish to Pages | 1 commit |
 
