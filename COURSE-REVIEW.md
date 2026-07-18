@@ -30,8 +30,8 @@ required content**, and three entire required domains are missing outright:
 Every lab today uses `nginx`, `busybox` or `curlimages/curl`. The Voting App at
 `voting-app/` — which is an almost perfect teaching vehicle — is entirely unused.
 
-**Bottom line:** keep the spine, fix two sequencing inversions, add ~120 slides and ~26
-labs, and re-anchor every lab onto the Voting App.
+**Bottom line:** keep the spine, fix two sequencing inversions, add ~129 slides and 23 new
+labs (8 existing → 31 total), and re-anchor every lab onto the Voting App.
 
 ---
 
@@ -340,7 +340,7 @@ Assumes ~6h/day with breaks ≈ 5h instruction. Target ~185 slides, ~34 labs, ~5
 | 🔬 Lab 8 | **NEW** — planted failure #1: bad image tag → diagnose ImagePullBackOff |
 | Wrap | Day-1 recap + "you are here" + **8 interview questions** | NEW ×2 |
 
-### DAY 2 — Workloads & Networking (~45 slides, 8 labs)
+### DAY 2 — Workloads & Networking (~45 slides, 7 labs)
 | Block | Content | Source |
 |---|---|---|
 | Recap | Why bare Pods failed yesterday | NEW ×1 |
@@ -360,7 +360,7 @@ Assumes ~6h/day with breaks ≈ 5h instruction. Target ~185 slides, ~34 labs, ~5
 | 🔬 Lab 15 | **NEW** — planted failure #2: selector/label mismatch → Service with no Endpoints |
 | Wrap | Recap + "you are here" + **8 interview questions** | NEW ×2 |
 
-### DAY 3 — Configuration, Storage & Health (~48 slides, 9 labs)
+### DAY 3 — Configuration, Storage & Health (~48 slides, 8 labs)
 | Block | Content | Source |
 |---|---|---|
 | 18 ConfigMaps | **NEW** — creation (literal/file/YAML), as **env**, as **mounted files**, hot-reload caveat ⚠ | NEW ×5 |
@@ -379,7 +379,7 @@ Assumes ~6h/day with breaks ≈ 5h instruction. Target ~185 slides, ~34 labs, ~5
 | 🔬 Lab 23 | **NEW** — planted failure #4: PVC Pending (no matching SC) |
 | Wrap | Recap + "you are here" + **8 interview questions** | NEW ×2 |
 
-### DAY 4 — Scheduling, Scaling, Production & Troubleshooting (~46 slides, 9 labs)
+### DAY 4 — Scheduling, Scaling, Production & Troubleshooting (~46 slides, 8 labs)
 | Block | Content | Source |
 |---|---|---|
 | 24 Requests & Limits | **NEW** — scheduling vs runtime, CPU throttle vs memory OOMKill ⚠ | NEW ×4 |
@@ -406,7 +406,7 @@ Assumes ~6h/day with breaks ≈ 5h instruction. Target ~185 slides, ~34 labs, ~5
 | 🔬 Lab 31 | **⭐ Final challenge** — deploy the whole Voting App from scratch to a written spec |
 | Close | Recap, **interview questions**, next steps, contact | Keep 55–56 |
 
-**Totals:** ~185 slides (56 kept/adapted, ~129 new), 31 labs + 3 optional stretch labs.
+**Totals:** ~185 slides (56 kept/adapted, ~129 new), **31 labs** (Day 1: 8 · Day 2: 7 · Day 3: 8 · Day 4: 8), ~55% hands-on.
 
 ---
 
