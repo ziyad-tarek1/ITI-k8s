@@ -445,11 +445,8 @@ vadeploy = [
         "Voting App: bare Pods &rarr; Deployments",
         two(
             col(
-                term("clear yesterday's bare Pods", _VOTE_DEPLOY, cls="xs"),
-            ),
-            col(
                 term(
-                    "first, remove the unmanaged Pods",
+                    "1 &middot; clear yesterday's bare Pods",
                     "kubectl config set-context --current --namespace=vote\n"
                     "kubectl get pods\n\n"
                     "# bare Pods have no owner - delete them by hand\n"
@@ -457,6 +454,9 @@ vadeploy = [
                     "kubectl get pods   # No resources found",
                     cls="xs",
                 ),
+                term("2 &middot; vote, now as a Deployment", _VOTE_DEPLOY, cls="xs"),
+            ),
+            col(
                 bul(
                     [
                         "<code>replicas: 2</code> on <code>vote</code> so the load balancing "
