@@ -260,24 +260,19 @@ replicaset = [
             col(
                 bul(
                     [
-                        "Compare it to the Deployment manifest &mdash; it is the "
-                        "<b>same three fields</b>: <code>replicas</code>, "
+                        "Same three fields as a Deployment: <code>replicas</code>, "
                         "<code>selector</code>, <code>template</code>. A Deployment is a "
                         "ReplicaSet plus rollout machinery.",
-                        "<b>Deployments create ReplicaSets for you</b> &mdash; one per revision. "
-                        "Roll out three times and you own three ReplicaSets, two of them scaled "
-                        "to zero, kept so <code>rollout undo</code> is instant.",
-                        "Write a ReplicaSet directly and you throw away rolling updates, "
-                        "history, rollback and <code>rollout restart</code> &mdash; for "
-                        "<b>zero</b> benefit.",
+                        "<b>Deployments create ReplicaSets for you</b> &mdash; one per "
+                        "revision, old ones kept at zero so <code>undo</code> is instant.",
+                        "Write one directly and you lose rollouts, history and rollback "
+                        "for <b>zero</b> benefit.",
                     ]
                 ),
                 term(
                     "see the ones you already own",
                     "kubectl -n vote get rs\n"
-                    "# NAME             DESIRED   CURRENT   READY\n"
-                    "# vote-6d4f8b9c7   3         3         3\n\n"
-                    "# who owns this ReplicaSet?\n"
+                    "# vote-6d4f8b9c7   3   3   3\n"
                     "kubectl -n vote get rs vote-6d4f8b9c7 \\\n"
                     "  -o jsonpath='{.metadata.ownerReferences[0].kind}'\n"
                     "# Deployment",
@@ -285,9 +280,8 @@ replicaset = [
                 ),
                 note(
                     "n-warn",
-                    "Never <code>kubectl delete rs</code> under a live Deployment &mdash; the "
-                    "Deployment controller simply recreates it seconds later. Delete the "
-                    "<b>Deployment</b> instead.",
+                    "Never <code>delete rs</code> under a live Deployment &mdash; the "
+                    "controller just recreates it. Delete the <b>Deployment</b>.",
                     title="Do not fight the owner",
                     style="margin-top:18px",
                 ),
@@ -378,18 +372,14 @@ _VOTE_DEPLOY = (
     "cat <<'EOF' | kubectl apply -f -\n"
     "apiVersion: apps/v1\n"
     "kind: Deployment\n"
-    "metadata:\n"
-    "  name: vote\n"
-    "  namespace: vote\n"
+    "metadata: {name: vote, namespace: vote}\n"
     "spec:\n"
     "  replicas: 2\n"
     "  selector:\n"
-    "    matchLabels:\n"
-    "      app: vote\n"
+    "    matchLabels: {app: vote}      # which Pods are mine\n"
     "  template:\n"
     "    metadata:\n"
-    "      labels:\n"
-    "        app: vote\n"
+    "      labels: {app: vote}         # must match the selector\n"
     "    spec:\n"
     "      containers:\n"
     "        - name: vote\n"
@@ -447,8 +437,7 @@ _INFRA_DEPLOYS = (
     "    metadata: {labels: {app: db}}\n"
     "    spec: {containers: [{name: db, image: \"postgres:14\",\n"
     "      env: [{name: POSTGRES_PASSWORD, value: postgres}]}]}\n"
-    "EOF\n\n"
-    "kubectl get deploy,rs,pods   # the whole ownership chain"
+    "EOF"
 )
 
 vadeploy = [
@@ -483,9 +472,8 @@ vadeploy = [
                 ),
                 note(
                     "n-tip",
-                    "Setting the namespace on your context once beats typing <code>-n vote</code> "
-                    "two hundred times today. Check it with "
-                    "<code>kubectl config view --minify | grep namespace</code>.",
+                    "Set the namespace on your context once instead of typing "
+                    "<code>-n vote</code> two hundred times today.",
                     style="margin-top:16px",
                 ),
             ),
@@ -721,8 +709,8 @@ rollouts = [
                 ),
                 note(
                     "n-warn",
-                    "The old <code>--record</code> flag is <b>deprecated</b> and gone from "
-                    "recent kubectl. Annotate the object instead.",
+                    "The old <code>--record</code> flag is <b>deprecated</b>. Annotate "
+                    "the object instead.",
                     style="margin-top:14px",
                 ),
             ),
@@ -1314,8 +1302,7 @@ _SVCS = (
     "apiVersion: v1\n"
     "kind: Service\n"
     "metadata: {name: redis}      # NAME IS LOAD-BEARING\n"
-    "spec: {selector: {app: redis},\n"
-    "  ports: [{port: 6379, targetPort: 6379}]}\n"
+    "spec: {selector: {app: redis}, ports: [{port: 6379, targetPort: 6379}]}\n"
     "---\n"
     "apiVersion: v1\n"
     "kind: Service\n"
@@ -1324,15 +1311,12 @@ _SVCS = (
     "---\n"
     "apiVersion: v1\n"
     "kind: Service\n"
-    "metadata: {name: vote}\n"
+    "metadata: {name: vote}       # NodePort so a browser can reach it\n"
     "spec: {type: NodePort, selector: {app: vote},\n"
     "  ports: [{port: 80, targetPort: 80, nodePort: 30080}]}\n"
-    "---\n"
-    "apiVersion: v1\n"
-    "kind: Service\n"
-    "metadata: {name: result}\n"
-    "spec: {selector: {app: result}, ports: [{port: 80, targetPort: 80}]}\n"
-    "EOF"
+    "EOF\n\n"
+    "kubectl expose deploy/result --name=result \\\n"
+    "  --port=80 --target-port=80"
 )
 
 vasvc = [
@@ -1366,10 +1350,9 @@ vasvc = [
                 )
                 + note(
                     "n-tip",
-                    "A Service in namespace <code>vote</code> named <code>vote</code> is "
-                    "perfectly legal &mdash; namespaces, Deployments and Services live in "
-                    "different name scopes.",
-                    style="margin-top:14px",
+                    "A Service named <code>vote</code> in namespace <code>vote</code> is "
+                    "legal &mdash; different name scopes.",
+                    style="margin-top:12px",
                 ),
             ),
             ratio="1.02fr 1fr",
@@ -1734,11 +1717,8 @@ vainit = [
                     "      initContainers:\n"
                     "        - name: wait-for-db\n"
                     "          image: postgres:14\n"
-                    "          command:\n"
-                    "            - sh\n"
-                    "            - -c\n"
-                    "            - until pg_isready -h db -p 5432; do\n"
-                    "                echo waiting for db; sleep 2; done\n"
+                    "          command: ['sh', '-c',\n"
+                    "            'until pg_isready -h db -p 5432; do sleep 2; done']\n"
                     "      containers:\n"
                     "        - name: worker\n"
                     "          image: iti/worker:v1\n"
@@ -1877,27 +1857,22 @@ day2end = [
             col(
                 steps(
                     [
-                        "The Service exists and has a ClusterIP &mdash; "
-                        "<code>kubectl get svc result-broken</code> looks perfectly healthy. "
-                        "Nothing here tells you anything.",
-                        "<b>Check the link:</b> "
-                        "<code>kubectl get endpoints result-broken</code> &rarr; "
-                        "<code>ENDPOINTS: &lt;none&gt;</code>. The Service is pointing at "
-                        "nothing at all.",
-                        "<b>Ask what the selector matches:</b> "
-                        "<code>kubectl get pods -l app=results</code> &rarr; "
-                        "<em>No resources found</em>. Now compare with "
-                        "<code>kubectl get pods --show-labels</code>.",
+                        "<code>kubectl get svc result-broken</code> looks perfectly "
+                        "healthy. It has a ClusterIP. Nothing here tells you anything.",
+                        "<b>Check the link:</b> <code>kubectl get endpoints "
+                        "result-broken</code> &rarr; <code>&lt;none&gt;</code>.",
+                        "<b>Ask what the selector matches:</b> <code>kubectl get pods -l "
+                        "app=results</code> &rarr; nothing. Compare with "
+                        "<code>--show-labels</code>.",
                         "<b>Fix it:</b> <code>kubectl patch svc result-broken -p "
-                        "'{\"spec\":{\"selector\":{\"app\":\"result\"}}}'</code>, then re-check "
-                        "endpoints &mdash; a Pod IP appears within a second and curl succeeds.",
+                        "'{\"spec\":{\"selector\":{\"app\":\"result\"}}}'</code> &mdash; an "
+                        "endpoint appears in a second.",
                     ]
                 ),
                 note(
                     "n-warn",
-                    "Nothing warns you. A selector that matches zero Pods is <b>valid</b> &mdash; "
-                    "the API server accepts it, the Service gets an IP, and every request just "
-                    "hangs. This is the most common self-inflicted networking bug in Kubernetes.",
+                    "Nothing warns you. A selector matching zero Pods is <b>valid</b> &mdash; "
+                    "the Service gets an IP and every request hangs.",
                     style="margin-top:14px",
                 ),
             ),
