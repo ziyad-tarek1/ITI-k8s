@@ -600,3 +600,86 @@ Each phase = one commit, per your git-per-step preference.
   infrastructure and must be settled before Day 4 labs are written.
 
 *Superseded by §15 — the plan below has been built.*
+
+---
+
+## 15. Delivery Record
+
+**Built.** `k8s-slides.html` is now a 4-day course: **209 slides, 60 labs**, published at
+<https://ziyad-tarek1.github.io/ITI-k8s/>.
+
+| | Before | After |
+|---|---|---|
+| Slides | 56 | **209** |
+| Labs | 8 | **60** |
+| Days | ~1 | **4** |
+| File size | 1.4 MB | **~1.0 MB** |
+| Voting App references | 0 | throughout all four days |
+
+| Day | Slides | Labs | Theme |
+|---|---|---|---|
+| 1 | 3–64 | 16 | Foundations & first contact |
+| 2 | 65–104 | 15 | Workloads & networking |
+| 3 | 105–144 | 12 | Configuration, storage & health |
+| 4 | 145–209 | 17 | Scheduling, scale & production |
+
+### Every gap in §2 closed
+
+ConfigMaps · Secrets · liveness/readiness/startup probes · requests/limits/QoS ·
+nodeSelector/affinity/taints/tolerations · HPA + metrics-server · Jobs & CronJobs ·
+NetworkPolicy + CNI · Ingress · Helm · StatefulSets · DaemonSets · RBAC ·
+Pod lifecycle & failure states · env/command/args · init containers & sidecars ·
+namespaces · labels/selectors/annotations · headless Services · Endpoints ·
+`rollout status/history/restart` · `port-forward`/`top`/`cp` · troubleshooting.
+
+### Sequencing fixed (§4)
+
+- Cluster architecture now precedes distributions.
+- The deep kubeadm/k3s/EKS comparison moved to Day 4.
+- Namespaces and labels/selectors are taught explicitly, before first use.
+
+### Defects fixed (§5)
+
+- Lab 4's self-heal deleted **every** replica (`| head -1` truncates output, not the deletion).
+- The "zero downtime" claim was false without a readiness probe. Day 2 now says *capacity
+  never drops* and Day 3's payoff lab proves the difference under live `curl` load.
+
+### Corrections found while building
+
+1. **`disableDefaultCNI` is a kind config field, not a CLI flag.** This review originally said
+   `--disable-default-cni`, which does not exist.
+2. **The worker does not crash without the DB.** `Worker.java:72` retries forever, so the Pod
+   reports `1/1 Running` while silently unable to work — the init container turns that into an
+   honest `Init:0/1`. §6 corrected.
+3. **App config was hardcoded.** `result/server.js` and `Worker.java` embedded the Postgres
+   credentials, so a Secret could only ever be decorative. All three apps now read config from
+   the environment with the old values as defaults (`docker compose` still works unchanged).
+
+### Verification performed
+
+- `tools/verify.py` — structure, balance, day markers, duplicate titles: **clean**.
+- `tools/checks.py` — **44 of 45** manifests embedded in labs pass `kubectl --dry-run=client`
+  (the exception is MetalLB's `IPAddressPool`, an uninstalled CRD; the manifest is correct).
+- `tools/overflow-probe.js` — all 209 rendered and measured against the 1920×1080 stage:
+  32 slides overflowed the footer and 4 had silently clipped table rows. **Both now zero.**
+- Assembly is idempotent — rebuilding produces a byte-identical file.
+
+### Not verified
+
+The labs have **never been run against a real cluster** — Docker was not running on this
+machine, so no image was built, no manifest was applied, and `Worker.java` was checked
+structurally rather than compiled. **Do a full dry-run on a clean kind cluster before teaching
+Day 1.** The Maven worker build is the single biggest classroom risk (5–15 min cold).
+
+### Build pipeline
+
+```
+tools/deck-base.html      pristine 56-slide base (never edited by the build)
+tools/deck.py             slide builder emitting the deck's own markup
+tools/content_day{1..4}.py  the 155 new slides, as data
+tools/assemble.py         ordering + day stamps + divider renumbering
+tools/verify.py           structural checks
+tools/checks.py           embedded-manifest + CSS-class checks
+tools/overflow-probe.js   render-time overflow detection
+python3 tools/assemble.py   # rebuild
+```
