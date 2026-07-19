@@ -491,7 +491,7 @@ Keep **Helm, metrics-server, StatefulSets, RBAC and DaemonSets** as genuine intr
 |---|---|---|
 | 1 | Deliverable shape | **One combined deck** — everything stays in `k8s-slides.html`. Mitigation for size: see §12a. |
 | 2 | Container images | **Students build from source, in-class, step by step.** Every build command lives in the slides — no prebuilt shortcut, no "clone this". This is a full end-to-end lab (Day 1). |
-| 3 | NetworkPolicy CNI | **kind + Calico** (`--disable-default-cni`) for the Day-4 cluster. |
+| 3 | NetworkPolicy CNI | **kind + Calico** — `networking.disableDefaultCNI: true` in the kind config file (not a CLI flag), podSubnet `192.168.0.0/16`. |
 | 4 | LoadBalancer demo | **MetalLB** on Day 4, so `type: LoadBalancer` is finally hands-on rather than theory. |
 | 5 | Lab track | **Keep kind** throughout; patch with Calico + MetalLB for Day 4. |
 | 6 | Manifests | Slides carry every manifest inline (consistent with #2). `k8s-manifests/` ships as an answer key only. |

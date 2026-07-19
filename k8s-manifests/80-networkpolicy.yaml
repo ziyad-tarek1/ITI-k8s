@@ -1,6 +1,16 @@
-# Requires a CNI that ENFORCES policy. kind's default (kindnet) does not:
-# create the Day 4 cluster with --disable-default-cni and install Calico,
-# or these policies appear to work while allowing everything.
+# Requires a CNI that ENFORCES policy. kind's default (kindnet) does not --
+# that is by design, not a bug (kubernetes-sigs/kind#3705). Without Calico
+# these policies apply cleanly and enforce NOTHING, which is worse than having
+# none at all. Create the Day 4 cluster like this instead:
+#
+#   kind: Cluster
+#   apiVersion: kind.x-k8s.io/v1alpha4
+#   networking:
+#     disableDefaultCNI: true       # config field, NOT a CLI flag
+#     podSubnet: "192.168.0.0/16"   # what Calico's manifest expects
+#
+# then: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+# Pods stay Pending until Calico is running -- that is expected, not a failure.
 #
 # Start by denying everything in the namespace, then open the paths we need.
 apiVersion: networking.k8s.io/v1

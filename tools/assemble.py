@@ -11,6 +11,7 @@ prerequisites. Two deliberate moves from COURSE-REVIEW.md section 4:
 Existing slides are referenced by their original 1-based number. Dropped:
   3   old one-day roadmap      -> replaced by the 4-day roadmap
   45  "Cluster DNS & Ingress"  -> split into Day 2 DNS and Day 4 Ingress
+  47  old Ingress lab          -> rewritten to route the Voting App
 """
 import importlib
 import re
@@ -31,6 +32,84 @@ def keep(*nums):
     """Existing slides by original 1-based number."""
     return [EXIST[n - 1] for n in nums]
 
+
+# The old Ingress lab routed to an nginx Deployment called "web". By Day 4 the
+# Voting App is the thing on the cluster, so the lab routes to it instead.
+INGRESS_LAB = deck.lab(
+    "Route the Voting App through one Ingress",
+    deck.two(
+        deck.term(
+            "1 &middot; install the controller",
+            """# kind-tuned ingress-nginx
+kubectl apply -f https://raw.githubusercontent.com/\\
+kubernetes/ingress-nginx/main/deploy/static/\\
+provider/kind/deploy.yaml
+
+# wait until the admission webhook is up
+kubectl wait -n ingress-nginx \\
+  --for=condition=ready pod \\
+  -l app.kubernetes.io/component=controller \\
+  --timeout=180s""",
+        )
+        + deck.term(
+            "2 &middot; one front door, two apps",
+            """kubectl apply -f - <<'EOF'
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vote
+  namespace: vote
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vote.localtest.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vote
+                port: {number: 80}
+    - host: result.localtest.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: result
+                port: {number: 80}
+EOF
+
+curl -s http://vote.localtest.me   | head -n3
+curl -s http://result.localtest.me | head -n3""",
+        ),
+        ratio="1fr 1.15fr",
+        gap=32,
+    )
+    + deck.note(
+        "n-tip",
+        "<code>*.localtest.me</code> resolves to <code>127.0.0.1</code> from any network, so "
+        "no <code>/etc/hosts</code> editing. Port 80 was mapped into the node back in Lab 1 &mdash; "
+        "that is why this reaches the cluster at all.",
+        title="Why this works",
+        style="margin-top:18px",
+    )
+    + deck.note(
+        "n-warn",
+        "One <b>external</b> entry point now fronts <b>two</b> Services. Compare that with the "
+        "NodePort approach on Day 2, which burned a port on every node for a single Service.",
+    ),
+    eyebrow="Lab &middot; Ingress",
+    kicker="Two apps, two hostnames, <b>one</b> load balancer &mdash; routed at L7 by the Host header.",
+    notes="Students have used NodePort and, just now, a real LoadBalancer via MetalLB. Ingress is "
+          "the third answer and the one they will actually meet in production: one controller, many "
+          "Services, routed by host or path. Point out that the Ingress object is inert on its own "
+          "&mdash; without a controller Pod watching for it, nothing happens. That trips up almost "
+          "everyone the first time.",
+    day=4,
+)
 
 # A lead-in for the Day 4 distributions deep-dive (old divider 13 stays on Day 1).
 DIST_DIVIDER = deck.divider(
@@ -109,7 +188,7 @@ ORDER += d4["scheduling"]                 # nodeSelector, affinity, taints
 ORDER += d4["metrics_hpa"]                # metrics-server, top, HPA
 ORDER += d4["jobs"]                       # Jobs + CronJobs
 ORDER += d4["ingress"]                    # Ingress theory
-ORDER += keep(47)                         # Ingress lab (adapted downstream)
+ORDER += [INGRESS_LAB]                    # replaces old slide 47 (routed to nginx)
 ORDER += d4["lbmetal"]                    # MetalLB -> real LoadBalancer
 ORDER += d4["netpol"]                     # CNI, pod networking, NetworkPolicy
 ORDER += d4["helm"]
