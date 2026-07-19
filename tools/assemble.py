@@ -27,6 +27,38 @@ d2 = importlib.import_module("content_day2").BLOCKS
 d3 = importlib.import_module("content_day3").BLOCKS
 d4 = importlib.import_module("content_day4").BLOCKS
 
+# Fail loudly on a renamed/missing/partial block rather than KeyError-ing
+# halfway through, or silently emitting a short day.
+EXPECT = {
+    1: {"roadmap4": 1, "arch_extra": 2, "namespaces": 4, "labels": 5, "podlife": 5,
+        "envargs": 3, "vaimages": 3, "vapods": 2, "debug1": 6, "day1end": 2},
+    2: {"day2open": 2, "replicaset": 2, "deploy_extra": 1, "vadeploy": 2, "rollouts": 4,
+        "varollout": 2, "svc_extra": 3, "dns": 3, "vasvc": 2, "multicontainer": 4,
+        "vainit": 2, "day2end": 3},
+    3: {"day3open": 1, "configmap": 7, "secret": 7, "emptydir_lab": 2, "storage_extra": 2,
+        "vapvc": 2, "statefulset": 2, "probes": 8, "day3end": 3},
+    4: {"day4open": 1, "resources": 7, "scheduling": 6, "metrics_hpa": 6, "jobs": 5,
+        "ingress": 3, "lbmetal": 2, "netpol": 8, "helm": 3, "awareness": 3,
+        "troubleshoot": 5, "bestpractice": 4, "final": 2, "interview4": 2},
+}
+problems = []
+for day, mod in ((1, d1), (2, d2), (3, d3), (4, d4)):
+    missing = set(EXPECT[day]) - set(mod)
+    if missing:
+        problems.append(f"day {day}: missing blocks {sorted(missing)}")
+    for name, want in EXPECT[day].items():
+        got = len(mod.get(name, []))
+        if got == 0 and name not in missing:
+            problems.append(f"day {day}: block '{name}' is empty")
+        elif got < want:
+            print(f"  note: day {day} '{name}' has {got} slides, spec said {want}")
+    for sec in [s for v in mod.values() for s in v]:
+        if not (sec.startswith("<section") and sec.endswith("</section>")):
+            problems.append(f"day {day}: a block emitted a non-section string")
+            break
+if problems:
+    sys.exit("BLOCK VALIDATION FAILED:\n  " + "\n  ".join(problems))
+
 
 def keep(*nums):
     """Existing slides by original 1-based number."""
