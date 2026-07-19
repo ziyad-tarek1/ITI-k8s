@@ -1070,7 +1070,7 @@ class Deck {
         course.textContent=(d?'Day '+d+' \u00b7 ':'')+'Kubernetes \u00b7 ITI DevOps 2026';
       }
     });
-    this.scale(); addEventListener('resize',()=>this.scale());
+    this.scale(); addEventListener('resize',()=>{this.scale();this.fit(this.slides[this.i])});
     this.keys(); this.touch(); this.wheel(); this.copy(); this.clicks();
     const h=location.hash.match(/\d+/);
     this.go(h?(+h[0]-1):0,true);
@@ -1091,7 +1091,38 @@ class Deck {
     this.notesEl.querySelector('.nbody').innerHTML =
       nt ? nt : '<i style="color:#61718c">No notes for this slide.</i>';
     this.notesEl.querySelector('.nx').textContent='SLIDE '+(this.i+1)+' / '+this.slides.length;
+    this.fit(this.slides[this.i]);
     if(!silent) history.replaceState(null,'','#'+(this.i+1));
+  }
+
+  fit(sl){
+    const body=sl.querySelector('.body'); if(!body) return;
+    body.style.transform=''; body.style.width='';
+    const foot=sl.querySelector('.foot');
+    const footTop=foot?foot.getBoundingClientRect().top:sl.getBoundingClientRect().bottom;
+    let bottom=0;
+    body.querySelectorAll(':scope > *, :scope > * > *, :scope > * > * > *').forEach(el=>{
+      const r=el.getBoundingClientRect();
+      if(r.height>0 && r.bottom>bottom) bottom=r.bottom;
+    });
+    if(!bottom) return;
+    const top=body.getBoundingClientRect().top;
+    const avail=footTop-top-10, need=bottom-top;
+    if(need>avail && avail>0){
+      const k=Math.max(0.68, avail/need);
+      body.style.transformOrigin='top left';
+      body.style.transform='scale('+k+')';
+      body.style.width=(100/k)+'%';
+    }
+  }
+  fitAll(){
+    this.slides.forEach(sl=>{
+      const a=sl.classList.contains('active'), v=sl.classList.contains('visible');
+      sl.classList.add('visible','active');
+      this.fit(sl);
+      if(!a) sl.classList.remove('active');
+      if(!v) sl.classList.remove('visible');
+    });
   }
   next(){this.go(this.i+1)} prev(){this.go(this.i-1)}
   toast(m){const t=document.querySelector('.toast');t.textContent=m;t.classList.add('on');

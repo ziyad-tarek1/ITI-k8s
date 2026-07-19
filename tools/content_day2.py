@@ -400,68 +400,55 @@ _VOTE_DEPLOY = (
     "EOF"
 )
 
-_REST_DEPLOYS = (
+# The two locally-built images. Folded into flow style so four manifests fit
+# two side-by-side panels instead of scrolling off the slide.
+_APP_DEPLOYS = (
     "cat <<'EOF' | kubectl apply -f -\n"
     "apiVersion: apps/v1\n"
     "kind: Deployment\n"
-    "metadata: {name: result, namespace: vote}\n"
+    "metadata: {name: result}\n"
     "spec:\n"
-    "  replicas: 1\n"
     "  selector: {matchLabels: {app: result}}\n"
     "  template:\n"
     "    metadata: {labels: {app: result}}\n"
-    "    spec:\n"
-    "      containers:\n"
-    "        - name: result\n"
-    "          image: iti/result:v1\n"
-    "          imagePullPolicy: IfNotPresent\n"
-    "          ports: [{containerPort: 80}]\n"
+    "    spec: {containers: [{name: result, image: \"iti/result:v1\",\n"
+    "      imagePullPolicy: IfNotPresent, ports: [{containerPort: 80}]}]}\n"
     "---\n"
     "apiVersion: apps/v1\n"
     "kind: Deployment\n"
-    "metadata: {name: worker, namespace: vote}\n"
+    "metadata: {name: worker}     # no ports - nothing ever calls worker\n"
     "spec:\n"
-    "  replicas: 1\n"
     "  selector: {matchLabels: {app: worker}}\n"
     "  template:\n"
     "    metadata: {labels: {app: worker}}\n"
-    "    spec:\n"
-    "      containers:\n"
-    "        - name: worker\n"
-    "          image: iti/worker:v1\n"
-    "          imagePullPolicy: IfNotPresent   # no ports: nothing calls it\n"
-    "---\n"
+    "    spec: {containers: [{name: worker, image: \"iti/worker:v1\",\n"
+    "      imagePullPolicy: IfNotPresent}]}\n"
+    "EOF"
+)
+
+_INFRA_DEPLOYS = (
+    "cat <<'EOF' | kubectl apply -f -\n"
     "apiVersion: apps/v1\n"
     "kind: Deployment\n"
-    "metadata: {name: redis, namespace: vote}\n"
+    "metadata: {name: redis}      # Docker Hub image - no pull policy\n"
     "spec:\n"
-    "  replicas: 1\n"
     "  selector: {matchLabels: {app: redis}}\n"
     "  template:\n"
     "    metadata: {labels: {app: redis}}\n"
-    "    spec:\n"
-    "      containers:\n"
-    "        - name: redis\n"
-    "          image: redis:alpine\n"
-    "          ports: [{containerPort: 6379}]\n"
+    "    spec: {containers: [{name: redis, image: \"redis:alpine\",\n"
+    "      ports: [{containerPort: 6379}]}]}\n"
     "---\n"
     "apiVersion: apps/v1\n"
     "kind: Deployment\n"
-    "metadata: {name: db, namespace: vote}\n"
+    "metadata: {name: db}         # POSTGRES_USER defaults to postgres\n"
     "spec:\n"
-    "  replicas: 1\n"
     "  selector: {matchLabels: {app: db}}\n"
     "  template:\n"
     "    metadata: {labels: {app: db}}\n"
-    "    spec:\n"
-    "      containers:\n"
-    "        - name: db\n"
-    "          image: postgres:14\n"
-    "          env:\n"
-    "            - {name: POSTGRES_USER,     value: postgres}\n"
-    "            - {name: POSTGRES_PASSWORD, value: postgres}\n"
-    "          ports: [{containerPort: 5432}]\n"
-    "EOF"
+    "    spec: {containers: [{name: db, image: \"postgres:14\",\n"
+    "      env: [{name: POSTGRES_PASSWORD, value: postgres}]}]}\n"
+    "EOF\n\n"
+    "kubectl get deploy,rs,pods   # the whole ownership chain"
 )
 
 vadeploy = [
@@ -519,52 +506,22 @@ vadeploy = [
     lab(
         "&hellip;and the other four components",
         two(
-            col(term("result &middot; worker &middot; redis &middot; db", _REST_DEPLOYS, cls="xs")),
-            col(
-                term(
-                    "verify",
-                    "kubectl get deploy\n"
-                    "# NAME     READY   UP-TO-DATE   AVAILABLE\n"
-                    "# db       1/1     1            1\n"
-                    "# redis    1/1     1            1\n"
-                    "# result   1/1     1            1\n"
-                    "# vote     2/2     2            2\n"
-                    "# worker   1/1     1            1\n\n"
-                    "# the full ownership chain\n"
-                    "kubectl get deploy,rs,pods\n\n"
-                    "# self-heal, for real this time\n"
-                    "kubectl delete pod \"$(kubectl get pod -l app=vote \\\n"
-                    "  -o name | head -1)\"\n"
-                    "kubectl get pods -l app=vote -w",
-                    cls="xs",
-                ),
-                note(
-                    "n-warn",
-                    "<code>worker</code> has <b>no <code>ports:</code></b> and will never get a "
-                    "Service. Nothing calls it &mdash; it pulls from Redis and pushes to Postgres. "
-                    "Not everything needs a Service; that instinct costs people marks in interviews.",
-                    title="No ports on worker",
-                    style="margin-top:16px",
-                ),
-                note(
-                    "n-info",
-                    "The app still does not work. <code>vote</code> is looking for a host called "
-                    "<code>redis</code> and there is no such name yet. Services come next.",
-                    style="margin-top:14px",
-                ),
-            ),
-            ratio="1.06fr 1fr",
-            gap=32,
+            col(term("the two images you built", _APP_DEPLOYS, cls="xs")),
+            col(term("the two off-the-shelf images", _INFRA_DEPLOYS, cls="xs")),
+            ratio="1fr 1fr",
+            gap=30,
         ),
         eyebrow="Lab 9 &middot; Workloads (2 of 2)",
-        kicker="Flow-style YAML to keep it on one screen &mdash; it is the same manifest, "
-        "just folded.",
+        kicker="Same manifest, folded into flow style. Note <b>no <code>ports:</code> on "
+        "<code>worker</code></b> &mdash; nothing calls it, so it will never get a Service "
+        "either.",
         notes=(
             "Point out that <code>redis:alpine</code> and <code>postgres:14</code> come from "
-            "Docker Hub, so they do not need IfNotPresent &mdash; only the three images the class "
-            "built do. Then run the self-heal delete and watch the replacement Pod appear while "
-            "<code>-w</code> is running. Close by saying the app is still broken and naming the "
-            "reason: no DNS name for redis. That sets up the Services block."
+            "Docker Hub, so they do not need IfNotPresent &mdash; only the images the class "
+            "built do. Dwell on worker having no ports: not everything needs a Service, and "
+            "that instinct costs people marks in interviews. Close by saying the app is still "
+            "broken and naming the reason: there is no DNS name for redis yet. That sets up "
+            "the Services block."
         ),
         day=2,
     ),
@@ -1292,8 +1249,8 @@ dns = [
             col(
                 term(
                     "get a shell with DNS tools in it",
-                    "kubectl run dnsutils --rm -it --restart=Never \\\n"
-                    "  -n vote --image=registry.k8s.io/e2e-test-images/jessie-dnsutils:1.3 \\\n"
+                    "kubectl run dnsutils -n vote --rm -it --restart=Never \\\n"
+                    "  --image=registry.k8s.io/e2e-test-images/jessie-dnsutils:1.3 \\\n"
                     "  -- /bin/sh\n\n"
                     "# inside the Pod:\n"
                     "cat /etc/resolv.conf\n\n"
@@ -1356,32 +1313,25 @@ _SVCS = (
     "cat <<'EOF' | kubectl apply -f -\n"
     "apiVersion: v1\n"
     "kind: Service\n"
-    "metadata: {name: redis, namespace: vote}     # NAME IS LOAD-BEARING\n"
-    "spec:\n"
-    "  selector: {app: redis}\n"
-    "  ports: [{port: 6379, targetPort: 6379}]\n"
+    "metadata: {name: redis}      # NAME IS LOAD-BEARING\n"
+    "spec: {selector: {app: redis},\n"
+    "  ports: [{port: 6379, targetPort: 6379}]}\n"
     "---\n"
     "apiVersion: v1\n"
     "kind: Service\n"
-    "metadata: {name: db, namespace: vote}        # NAME IS LOAD-BEARING\n"
-    "spec:\n"
-    "  selector: {app: db}\n"
-    "  ports: [{port: 5432, targetPort: 5432}]\n"
+    "metadata: {name: db}         # NAME IS LOAD-BEARING\n"
+    "spec: {selector: {app: db}, ports: [{port: 5432, targetPort: 5432}]}\n"
     "---\n"
     "apiVersion: v1\n"
     "kind: Service\n"
-    "metadata: {name: vote, namespace: vote}\n"
-    "spec:\n"
-    "  type: NodePort\n"
-    "  selector: {app: vote}\n"
-    "  ports: [{port: 80, targetPort: 80, nodePort: 30080}]\n"
+    "metadata: {name: vote}\n"
+    "spec: {type: NodePort, selector: {app: vote},\n"
+    "  ports: [{port: 80, targetPort: 80, nodePort: 30080}]}\n"
     "---\n"
     "apiVersion: v1\n"
     "kind: Service\n"
-    "metadata: {name: result, namespace: vote}\n"
-    "spec:\n"
-    "  selector: {app: result}\n"
-    "  ports: [{port: 80, targetPort: 80}]\n"
+    "metadata: {name: result}\n"
+    "spec: {selector: {app: result}, ports: [{port: 80, targetPort: 80}]}\n"
     "EOF"
 )
 

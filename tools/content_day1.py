@@ -1358,41 +1358,29 @@ VAPODS = [
                     "day1-pods.yaml",
                     """apiVersion: v1
 kind: Pod
-metadata:
-  name: redis
-  labels:
-    app: redis
+metadata: {name: redis, labels: {app: redis}}
 spec:
   containers:
     - name: redis
       image: redis:alpine
-      ports:
-        - containerPort: 6379
+      ports: [{containerPort: 6379}]
 ---
 apiVersion: v1
 kind: Service          # so DNS name "redis" exists
-metadata:
-  name: redis
+metadata: {name: redis}
 spec:
-  selector:
-    app: redis
-  ports:
-    - port: 6379
-      targetPort: 6379
+  selector: {app: redis}
+  ports: [{port: 6379, targetPort: 6379}]
 ---
 apiVersion: v1
 kind: Pod
-metadata:
-  name: vote
-  labels:
-    app: vote
+metadata: {name: vote, labels: {app: vote}}
 spec:
   containers:
     - name: vote
       image: iti/vote:v1
       imagePullPolicy: IfNotPresent
-      ports:
-        - containerPort: 80""",
+      ports: [{containerPort: 80}]""",
                 ),
             ),
             col(
@@ -1414,12 +1402,6 @@ kubectl exec redis -n vote -- redis-cli ping    # PONG""",
                     "fails.",
                     title="The name is load-bearing",
                 ),
-                note(
-                    "n-info",
-                    "Yes, we are creating a Service before we have taught Services. Today it "
-                    "exists only to give <code>redis</code> a DNS name. Tomorrow it gets a "
-                    "whole section.",
-                ),
             ),
             ratio="1.05fr 1fr",
         ),
@@ -1428,8 +1410,10 @@ kubectl exec redis -n vote -- redis-cli ping    # PONG""",
                "worst way to run an application &mdash; and that is exactly the point.",
         notes="Everything here is deliberately primitive: bare Pods, a hand-written "
               "Service, no controllers. Let them enjoy it working for about three minutes. "
-              "Watch for the namespace &mdash; if they set the default context in Lab 4 the "
-              "-n flags are redundant, but leave them in the slides so nobody is lost. "
+              "Say out loud that we are creating a Service before teaching Services &mdash; "
+              "today it exists only to give redis a DNS name, and it gets a whole section "
+              "tomorrow. Watch for the namespace: if they set the default context in Lab 4 "
+              "the -n flags are redundant, but they stay in the slides so nobody is lost. "
               "PONG from redis-cli is the checkpoint before moving on.",
         day=1,
     ),

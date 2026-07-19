@@ -2088,10 +2088,8 @@ kubectl rollout restart deployment/vote -n vote""",
             col(
                 term(
                     "round 2 &middot; readiness probe added",
-                    """# Terminal A output in round 1:
-# FAIL 1  (request 43)
-# FAIL 2  (request 44)
-#  ... ~50 failures across the 10s warmup window
+                    """# Round 1, terminal A: ~50 FAIL lines
+# across the 10s warmup window.
 
 # now tell Kubernetes what "ready" means
 kubectl patch deployment vote -n vote --type=strategic -p "$(cat <<'EOF'
@@ -2124,12 +2122,6 @@ kubectl rollout restart deployment/vote -n vote
                     "default behaviour.",
                     title="Confusion #11",
                 ),
-                note(
-                    "n-tip",
-                    "<code>maxUnavailable: 0</code> is the other half. It forces the new Pod to "
-                    "be genuinely Ready before the old one is allowed to go &mdash; readiness "
-                    "supplies the truth, the strategy acts on it.",
-                ),
             ),
             ratio="1fr 1.05fr",
             gap=26,
@@ -2151,7 +2143,9 @@ kubectl rollout restart deployment/vote -n vote
             "say so: it makes a slow warmup visible in a lab-sized app instead of hoping to catch "
             "a one-second window. Do not explain round 1 before they see the FAIL lines scroll. "
             "Then add readiness plus maxUnavailable: 0, roll again, and let the silence in "
-            "terminal A be the lesson."
+            "terminal A be the lesson. Call out that maxUnavailable: 0 is the other half of the "
+            "fix &mdash; it forces the new Pod to be genuinely Ready before the old one is "
+            "allowed to go. Readiness supplies the truth; the rollout strategy acts on it."
         ),
         day=D,
     ),
