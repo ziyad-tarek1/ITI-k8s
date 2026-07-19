@@ -37,11 +37,11 @@ kubectl -n vote rollout status deploy/vote
 
 ```bash
 cd voting-app
-docker build -t voteapp/worker:1.0 ./worker &     # slowest — start it first
-docker build -t voteapp/vote:1.0   ./vote
-docker build -t voteapp/result:1.0 ./result       # plain build = prod stage
+docker build -t iti/worker:v1 ./worker &     # slowest — start it first
+docker build -t iti/vote:v1   ./vote
+docker build -t iti/result:v1 ./result       # plain build = prod stage
 wait
 for i in vote result worker; do
-  kind load docker-image voteapp/$i:1.0 --name iti
+  kind load docker-image iti/$i:v1 --name iti
 done
 ```

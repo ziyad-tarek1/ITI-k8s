@@ -534,11 +534,11 @@ kubectl get pods -l '!app'         # key absent""",
             two(
                 panel(
                     "The selector &mdash; a standing question",
-                    '<div class="term xs r"><div class="term-bar"><div class="dots">'
-                    "<i></i><i></i><i></i></div><span class=\"term-label\">service.yaml</span>"
-                    '<button class="copy">Copy</button></div><pre><code>'
-                    + hl("kind: Service\nspec:\n  selector:\n    app: vote")
-                    + "</code></pre></div>"
+                    term(
+                        "service.yaml",
+                        "kind: Service\nspec:\n  selector:\n    app: vote",
+                        cls="xs",
+                    )
                     + '<p style="margin-top:16px;font-size:21px;color:var(--dim)">'
                     "Evaluated <b>continuously</b>, never once. Add a matching Pod at 3am "
                     "and it joins the Service at 3am.</p>",
@@ -861,15 +861,13 @@ kubectl get pod vote \\
                 '<div class="failbox r"><div class="fb-h">'
                 '<span class="fb-badge">STATUS</span>'
                 '<span class="fb-t">CrashLoopBackOff</span></div>'
-                '<div class="term xs"><div class="term-bar"><div class="dots">'
-                "<i></i><i></i><i></i></div><span class=\"term-label\">kubectl get pods</span>"
-                '<button class="copy">Copy</button></div><pre><code>'
-                + hl(
+                + term(
+                    "kubectl get pods",
                     "NAME     READY   STATUS             RESTARTS      AGE\n"
-                    "worker   0/1     CrashLoopBackOff   5 (46s ago)   4m12s"
+                    "worker   0/1     CrashLoopBackOff   5 (46s ago)   4m12s",
+                    cls="xs",
                 )
-                + "</code></pre></div>"
-                '<div class="fb-note">Your container <b>starts fine and then dies</b>. '
+                + '<div class="fb-note">Your container <b>starts fine and then dies</b>. '
                 "Kubernetes restarts it, it dies again, and the wait between attempts "
                 "doubles: 10s, 20s, 40s&hellip; capped at 5 minutes. <b>The image is fine "
                 "&mdash; the process is not.</b></div></div>",
@@ -923,17 +921,15 @@ kubectl get events --sort-by=.lastTimestamp | tail""",
                 '<div class="failbox r"><div class="fb-h">'
                 '<span class="fb-badge">STATUS</span>'
                 '<span class="fb-t">ImagePullBackOff</span></div>'
-                '<div class="term xs"><div class="term-bar"><div class="dots">'
-                "<i></i><i></i><i></i></div><span class=\"term-label\">kubectl describe pod</span>"
-                '<button class="copy">Copy</button></div><pre><code>'
-                + hl(
+                + term(
+                    "kubectl describe pod",
                     "Events:\n"
-                    "  Warning  Failed   Failed to pull image \"iti/vote:v99\"\n"
+                    '  Warning  Failed   Failed to pull image "iti/vote:v99"\n'
                     "  Warning  Failed   Error: ErrImagePull\n"
-                    "  Normal   BackOff  Back-off pulling image \"iti/vote:v99\""
+                    '  Normal   BackOff  Back-off pulling image "iti/vote:v99"',
+                    cls="xs",
                 )
-                + "</code></pre></div>"
-                '<div class="fb-note"><b>ErrImagePull</b> is the first failed attempt. '
+                + '<div class="fb-note"><b>ErrImagePull</b> is the first failed attempt. '
                 "<b>ImagePullBackOff</b> is what it becomes once the kubelet starts waiting "
                 "between retries. Same problem &mdash; the node <b>cannot get the image</b>, "
                 "so no container ever starts.</div></div>",

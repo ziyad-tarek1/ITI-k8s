@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: result
-          image: voteapp/result:1.0
+          image: iti/result:v1
           imagePullPolicy: IfNotPresent
           ports: [{containerPort: 80}]
           envFrom:

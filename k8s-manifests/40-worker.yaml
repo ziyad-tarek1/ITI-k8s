@@ -23,7 +23,7 @@ spec:
             - until pg_isready -h db -U postgres; do echo "waiting for db"; sleep 2; done
       containers:
         - name: worker
-          image: voteapp/worker:1.0
+          image: iti/worker:v1
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef: {name: vote-config}

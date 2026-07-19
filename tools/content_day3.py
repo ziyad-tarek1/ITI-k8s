@@ -188,7 +188,7 @@ data:
                 """spec:
   containers:
   - name: vote
-    image: vote:v1
+    image: iti/vote:v1
     env:
     - name: OPTION_A            # env var name in the container
       valueFrom:
@@ -209,7 +209,7 @@ data:
                     """spec:
   containers:
   - name: vote
-    image: vote:v1
+    image: iti/vote:v1
     envFrom:
     - configMapRef:
         name: vote-config
@@ -253,7 +253,7 @@ data:
                 """spec:
   containers:
   - name: vote
-    image: vote:v1
+    image: iti/vote:v1
     volumeMounts:
     - name: conf              # matches a volume below
       mountPath: /etc/vote    # directory in the container
@@ -728,7 +728,7 @@ echo -n 'S3cure-ITI-2026' | base64
                 """spec:
   containers:
   - name: result
-    image: result:v1
+    image: iti/result:v1
     env:
     - name: DB_HOST
       value: db                    # a plain literal
@@ -1010,7 +1010,8 @@ kubectl rollout status deployment/redis -n vote
 kubectl scale deployment/worker -n vote --replicas=0
 
 # now cast 5-6 votes in the UI
-kubectl port-forward svc/vote 8080:80 -n vote""",
+kubectl port-forward svc/vote 8080:80 -n vote
+# ... vote 5-6 times at localhost:8080, then Ctrl-C""",
                 cls="xs",
             ),
             col(
