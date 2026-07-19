@@ -8,8 +8,8 @@ import org.json.JSONObject;
 class Worker {
   public static void main(String[] args) {
     try {
-      Jedis redis = connectToRedis("redis");
-      Connection dbConn = connectToDB("db");
+      Jedis redis = connectToRedis(env("REDIS_HOST", "redis"));
+      Connection dbConn = connectToDB(env("DB_HOST", "db"));
 
       System.err.println("Watching vote queue");
 
@@ -68,11 +68,12 @@ class Worker {
     try {
 
       Class.forName("org.postgresql.Driver");
-      String url = "jdbc:postgresql://" + host + "/postgres";
+      String url = "jdbc:postgresql://" + host + "/" + env("DB_NAME", "postgres");
 
       while (conn == null) {
         try {
-          conn = DriverManager.getConnection(url, "postgres", "postgres");
+          conn = DriverManager.getConnection(url,
+              env("DB_USER", "postgres"), env("DB_PASSWORD", "postgres"));
         } catch (SQLException e) {
           System.err.println("Waiting for db");
           sleep(1000);
@@ -98,5 +99,12 @@ class Worker {
     } catch (InterruptedException e) {
       System.exit(1);
     }
+  }
+
+  // Config from the environment, falling back to the Compose defaults so the
+  // same image runs under Docker Compose and Kubernetes unchanged.
+  static String env(String key, String fallback) {
+    String v = System.getenv(key);
+    return (v == null || v.isEmpty()) ? fallback : v;
   }
 }

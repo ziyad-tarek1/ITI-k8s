@@ -22,8 +22,13 @@ io.sockets.on('connection', function (socket) {
   });
 });
 
+// Config comes from the environment so the same image runs anywhere:
+// Compose keeps working via the defaults, Kubernetes injects a ConfigMap/Secret.
 var pool = new Pool({
-  connectionString: 'postgres://postgres:postgres@db/postgres'
+  host:     process.env.DB_HOST     || 'db',
+  user:     process.env.DB_USER     || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME     || 'postgres'
 });
 
 async.retry(
