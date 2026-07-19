@@ -1,0 +1,36 @@
+# The worker has NO Service — nothing connects to it. It reaches out to redis
+# and db. Teaching point: a Service is for inbound traffic, not "every Pod".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: vote
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: worker}
+  template:
+    metadata:
+      labels: {app: worker}
+    spec:
+      initContainers:
+        # The Java worker exits if Postgres is not accepting connections yet.
+        # Block startup until db answers, instead of crash-looping into it.
+        - name: wait-for-db
+          image: postgres:14
+          command: ["sh", "-c"]
+          args:
+            - until pg_isready -h db -U postgres; do echo "waiting for db"; sleep 2; done
+      containers:
+        - name: worker
+          image: voteapp/worker:1.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: {name: vote-config}
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: db-secret, key: POSTGRES_PASSWORD}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits:   {cpu: 500m, memory: 512Mi}

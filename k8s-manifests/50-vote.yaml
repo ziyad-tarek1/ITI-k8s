@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vote
+  namespace: vote
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: vote}
+  template:
+    metadata:
+      labels: {app: vote}
+    spec:
+      containers:
+        - name: vote
+          image: voteapp/vote:1.0
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 80}]
+          envFrom:
+            - configMapRef: {name: vote-config}
+          resources:
+            # HPA scales on CPU as a percentage of THIS request.
+            # No request => the HPA silently does nothing.
+            requests: {cpu: 100m, memory: 64Mi}
+            limits:   {cpu: 500m, memory: 256Mi}
+          readinessProbe:
+            httpGet: {path: /, port: 80}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /, port: 80}
+            initialDelaySeconds: 20
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote
+  namespace: vote
+spec:
+  selector: {app: vote}
+  ports:
+    - {port: 80, targetPort: 80}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: vote
+  namespace: vote
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vote
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}

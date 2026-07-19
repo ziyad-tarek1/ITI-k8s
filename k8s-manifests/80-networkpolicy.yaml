@@ -1,0 +1,65 @@
+# Requires a CNI that ENFORCES policy. kind's default (kindnet) does not:
+# create the Day 4 cluster with --disable-default-cni and install Calico,
+# or these policies appear to work while allowing everything.
+#
+# Start by denying everything in the namespace, then open the paths we need.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: vote
+spec:
+  podSelector: {}            # every Pod in the namespace
+  policyTypes: [Ingress]
+---
+# redis accepts connections only from vote (writes) and worker (reads).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-allow
+  namespace: vote
+spec:
+  podSelector:
+    matchLabels: {app: redis}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app: vote}}
+        - podSelector: {matchLabels: {app: worker}}
+      ports:
+        - {protocol: TCP, port: 6379}
+---
+# db accepts connections only from worker (writes) and result (reads).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-allow
+  namespace: vote
+spec:
+  podSelector:
+    matchLabels: {app: db}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app: worker}}
+        - podSelector: {matchLabels: {app: result}}
+      ports:
+        - {protocol: TCP, port: 5432}
+---
+# The two frontends are reachable from anywhere (the Ingress controller lives
+# in another namespace, so allow that too).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-allow
+  namespace: vote
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: app, operator: In, values: [vote, result]}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - {protocol: TCP, port: 80}

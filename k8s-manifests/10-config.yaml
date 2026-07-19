@@ -1,0 +1,26 @@
+# Day 3 — configuration pulled out of the images.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vote-config
+  namespace: vote
+data:
+  # vote/app.py reads these; change them and the UI text changes.
+  OPTION_A: "Cats"
+  OPTION_B: "Dogs"
+  REDIS_HOST: "redis"
+  DB_HOST: "db"
+  DB_NAME: "postgres"
+  DB_USER: "postgres"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+  namespace: vote
+type: Opaque
+stringData:
+  # stringData is written in plain text and stored base64-encoded.
+  # base64 is ENCODING, not encryption — `kubectl get secret -o yaml` then
+  # `base64 -d` recovers this instantly. Never commit a real one.
+  POSTGRES_PASSWORD: "postgres"
