@@ -82,8 +82,8 @@ kubectl wait -n ingress-nginx \\
   --for=condition=ready pod \\
   -l app.kubernetes.io/component=controller \\
   --timeout=180s""",
-        )
-        + deck.term(
+        ),
+        deck.term(
             "2 &middot; one front door, two apps",
             """kubectl apply -f - <<'EOF'
 apiVersion: networking.k8s.io/v1
@@ -258,6 +258,21 @@ for i, sec in enumerate(ORDER):
 # The kept recap slide was written for a one-day course.
 final = [s.replace("The whole day in one view", "The whole course in one view")
          for s in final]
+
+# Make the roadmap's day rows clickable. The content module could not do this:
+# the jump targets are only known once the final ordering exists.
+DAY_START = {1: 4, 2: IDX_D2 + 1, 3: IDX_D3 + 1, 4: IDX_D4 + 1}
+for i, sec in enumerate(final):
+    if "Four days, one application" not in sec:
+        continue
+    for d, target in DAY_START.items():
+        sec = sec.replace(
+            f"<tr><td><b>{d}</b></td>",
+            f'<tr data-go="{target}" style="cursor:pointer"><td><b>{d}</b></td>',
+            1,
+        )
+    final[i] = sec
+    break
 
 # Renumber section dividers sequentially across the whole deck.
 n = 0
