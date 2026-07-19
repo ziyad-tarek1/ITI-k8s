@@ -25,7 +25,9 @@ spec:
       labels: {app: db}
     spec:
       containers:
-        - name: postgres
+        # Named "db", matching the labs. Strategic-merge patches match
+        # containers by name, so this must not drift from the slides.
+        - name: db
           image: postgres:14
           ports: [{containerPort: 5432}]
           env:
