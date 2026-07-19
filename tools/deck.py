@@ -175,10 +175,18 @@ def divider(num, title, sub, items, notes="", day=None):
 SRC = "k8s-slides.html"
 
 
+BASE = "tools/deck-base.html"
+
+
 def load(path=SRC):
-    """Return (head, [sections], tail) for the current deck."""
+    """Return (head, [sections], tail) for a deck.
+
+    Matches sections whether or not they already carry a data-day attribute,
+    so this works on both the pristine base and an assembled deck.
+    """
     s = open(path, encoding="utf-8").read()
-    secs = re.findall(r'<section class="slide.*?</section>', s, flags=re.S)
+    secs = re.findall(r'<section [^>]*class="slide.*?</section>|<section class="slide.*?</section>',
+                      s, flags=re.S)
     first, last = s.index(secs[0]), s.rindex(secs[-1]) + len(secs[-1])
     return s[:first], secs, s[last:]
 

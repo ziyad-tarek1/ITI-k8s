@@ -20,7 +20,10 @@ import sys
 sys.path.insert(0, "tools")
 import deck  # noqa: E402
 
-head, EXIST, tail = deck.load()
+# Always build from the pristine 56-slide base, never from a previous build --
+# assembly must be repeatable and produce the same deck every time.
+head, EXIST, tail = deck.load(deck.BASE)
+assert len(EXIST) == 56, f"base deck should have 56 slides, found {len(EXIST)}"
 
 d1 = importlib.import_module("content_day1").BLOCKS
 d2 = importlib.import_module("content_day2").BLOCKS
@@ -88,30 +91,20 @@ kubectl wait -n ingress-nginx \\
             """kubectl apply -f - <<'EOF'
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-metadata:
-  name: vote
-  namespace: vote
+metadata: {name: vote, namespace: vote}
 spec:
   ingressClassName: nginx
   rules:
-    - host: vote.localtest.me
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: vote
-                port: {number: 80}
-    - host: result.localtest.me
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: result
-                port: {number: 80}
+  - host: vote.localtest.me
+    http:
+      paths:
+      - {path: /, pathType: Prefix, backend:
+         {service: {name: vote, port: {number: 80}}}}
+  - host: result.localtest.me
+    http:
+      paths:
+      - {path: /, pathType: Prefix, backend:
+         {service: {name: result, port: {number: 80}}}}
 EOF
 
 curl -s http://vote.localtest.me   | head -n3
@@ -122,16 +115,12 @@ curl -s http://result.localtest.me | head -n3""",
     )
     + deck.note(
         "n-tip",
-        "<code>*.localtest.me</code> resolves to <code>127.0.0.1</code> from any network, so "
-        "no <code>/etc/hosts</code> editing. Port 80 was mapped into the node back in Lab 1 &mdash; "
-        "that is why this reaches the cluster at all.",
+        "<code>*.localtest.me</code> resolves to <code>127.0.0.1</code>, so there is no "
+        "<code>/etc/hosts</code> editing. One <b>external</b> entry point now fronts "
+        "<b>two</b> Services &mdash; compare that with Day 2&rsquo;s NodePort, which burned a "
+        "port on every node for one Service.",
         title="Why this works",
-        style="margin-top:18px",
-    )
-    + deck.note(
-        "n-warn",
-        "One <b>external</b> entry point now fronts <b>two</b> Services. Compare that with the "
-        "NodePort approach on Day 2, which burned a port on every node for a single Service.",
+        style="margin-top:16px",
     ),
     eyebrow="Lab &middot; Ingress",
     kicker="Two apps, two hostnames, <b>one</b> load balancer &mdash; routed at L7 by the Host header.",
@@ -139,7 +128,8 @@ curl -s http://result.localtest.me | head -n3""",
           "the third answer and the one they will actually meet in production: one controller, many "
           "Services, routed by host or path. Point out that the Ingress object is inert on its own "
           "&mdash; without a controller Pod watching for it, nothing happens. That trips up almost "
-          "everyone the first time.",
+          "everyone the first time. Also remind them port 80 was mapped into the node back in Lab 1; "
+          "that is the only reason this reaches the cluster at all.",
     day=4,
 )
 

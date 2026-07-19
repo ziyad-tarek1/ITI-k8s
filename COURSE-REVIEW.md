@@ -2,7 +2,8 @@
 
 **Reviewed:** `k8s-slides.html` — 56 slides, 8 sections, 8 labs
 **Target:** 4 full training days, absolute beginners → solid intermediate
-**Status:** Analysis only. No slides modified. Build decisions settled — see §12.
+**Status:** BUILT. All sections below are implemented in `k8s-slides.html`.
+See §15 for the delivery record.
 
 ---
 
@@ -295,7 +296,7 @@ Kubernetes concept. This is why it beats nginx examples: nothing is contrived.
 |---|---|---|
 | **vote** | Deployment, Service, HPA, ConfigMap, Ingress | Stateless HTTP frontend; CPU load is generatable → real HPA demo |
 | **result** | Deployment, Service, readiness probe, Ingress path routing | Second frontend → forces path-based Ingress rules |
-| **worker** | Deployment **without** a Service, resource limits, liveness probe, init container | Has no inbound traffic → teaches "not everything needs a Service". Crashes if db is absent → *authentic* init-container use case |
+| **worker** | Deployment **without** a Service, resource limits, liveness probe, init container | Has no inbound traffic → teaches "not everything needs a Service". It retries the DB forever (`Worker.java:72`) rather than crashing, so it reports `1/1 Running` while silently unable to work — the init container turns that lie into an honest `Init:0/1` |
 | **redis** | ClusterIP, emptyDir → PVC | Show data loss with emptyDir, then fix it. Ephemeral-vs-durable made visceral |
 | **db** (Postgres) | **Secret** (`POSTGRES_PASSWORD`), ConfigMap (`POSTGRES_USER`), PVC + StorageClass, headless Service, StatefulSet intro, exec probe (`pg_isready`) | Every stateful concern in one component. The password is a *real* secret, not a toy |
 | **whole app** | NetworkPolicy, Jobs/CronJobs, troubleshooting, final challenge | Policy: only vote+worker→redis, only worker+result→db. A genuine 4-tier policy |
@@ -598,4 +599,4 @@ Each phase = one commit, per your git-per-step preference.
 - **Six decisions needed from you (§12)** — items 2 and 3 (Calico, MetalLB) change the lab
   infrastructure and must be settled before Day 4 labs are written.
 
-*No slides have been modified. Awaiting approval.*
+*Superseded by §15 — the plan below has been built.*

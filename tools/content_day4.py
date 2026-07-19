@@ -54,16 +54,16 @@ BLOCKS = {}
 BLOCKS["day4open"] = [
     divider(
         "04",
-        "Scheduling, Scaling & Production",
+        "Scheduling, Scaling &amp; Production",
         "Day 4. You can deploy an app. Today you make it survive a real cluster "
         "&mdash; and fix it when it does not.",
         [
-            "Requests, limits & QoS",
-            "Scheduling: affinity, taints & tolerations",
-            "metrics-server, kubectl top & the HPA",
-            "Jobs & CronJobs",
-            "Ingress, CNI & NetworkPolicy",
-            "Helm, RBAC, DaemonSets & quotas",
+            "Requests, limits &amp; QoS",
+            "Scheduling: affinity, taints &amp; tolerations",
+            "metrics-server, kubectl top &amp; the HPA",
+            "Jobs &amp; CronJobs",
+            "Ingress, CNI &amp; NetworkPolicy",
+            "Helm, RBAC, DaemonSets &amp; quotas",
             "Troubleshooting &mdash; and the final challenge",
         ],
         notes=(
@@ -638,7 +638,7 @@ kubectl get nodes -L disktype""",
         day=4,
     ),
     slide(
-        "Taints & tolerations",
+        "Taints &amp; tolerations",
         two(
             panel(
                 "&#128274; Taint &mdash; on the <b>node</b>",
@@ -1194,8 +1194,7 @@ BLOCKS["jobs"] = [
                 "job.yaml",
                 """apiVersion: batch/v1
 kind: Job
-metadata:
-  name: db-init
+metadata: {name: db-init}
 spec:
   template:
     spec:
@@ -1306,8 +1305,7 @@ spec:
                     "cronjob.yaml",
                     """apiVersion: batch/v1
 kind: CronJob
-metadata:
-  name: tally
+metadata: {name: tally}
 spec:
   schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
@@ -1430,8 +1428,7 @@ spec:
                 """cat <<'EOF' | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job
-metadata:
-  name: db-init
+metadata: {name: db-init}
 spec:
   backoffLimit: 4
   ttlSecondsAfterFinished: 600
@@ -1444,19 +1441,15 @@ spec:
         env:
         - name: PGPASSWORD
           valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: POSTGRES_PASSWORD
+            secretKeyRef: {name: db-secret, key: POSTGRES_PASSWORD}
         command: ["sh","-c"]
         args:
         - |
           until pg_isready -h db -U postgres; do sleep 2; done
-          psql -h db -U postgres -c "CREATE TABLE IF NOT EXISTS
-          votes (id VARCHAR(255) NOT NULL UNIQUE,
+          psql -h db -U postgres -c "CREATE TABLE IF NOT
+          EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE,
           vote VARCHAR(255) NOT NULL);"
 EOF
-
-kubectl get job db-init -w
 kubectl logs job/db-init""",
                 cls="xs",
             ),
@@ -1465,8 +1458,7 @@ kubectl logs job/db-init""",
                 """cat <<'EOF' | kubectl apply -f -
 apiVersion: batch/v1
 kind: CronJob
-metadata:
-  name: tally
+metadata: {name: tally}
 spec:
   schedule: "*/2 * * * *"
   concurrencyPolicy: Forbid
@@ -1483,9 +1475,7 @@ spec:
             env:
             - name: PGPASSWORD
               valueFrom:
-                secretKeyRef:
-                  name: db-secret
-                  key: POSTGRES_PASSWORD
+                secretKeyRef: {name: db-secret, key: POSTGRES_PASSWORD}
             command: ["sh","-c"]
             args: ["psql -h db -U postgres -t -c
               'SELECT vote, count(*) FROM votes
@@ -1504,14 +1494,7 @@ kubectl logs "$(kubectl get pod \\
             ratio="1fr 1fr",
             gap=26,
         )
-        + note(
-            "n-tip",
-            "The Job waits on <code>pg_isready</code> before touching the schema &mdash; the same "
-            "trick as the Day-2 init container, and the reason this Job is safe to re-run. Cast a "
-            "few votes in the UI between CronJob runs and watch the counts move in the logs. "
-            "<code>db-secret</code> is the Secret you created on Day 3.",
-            style="margin-top:14px",
-        ),
+        ,
         eyebrow="Lab 29 &middot; Batch",
         kicker="One Job that must succeed once, one CronJob that reports forever.",
         notes=(
@@ -1519,7 +1502,10 @@ kubectl logs "$(kubectl get pod \\
             "&mdash; a static count teaches nothing. Two minutes is a long silence in a "
             "classroom, so fill it by walking through <code>kubectl get jobs</code> and the "
             "history limits. If the Job fails, that is a fine outcome: read the logs together and "
-            "let them find the Secret name typo."
+            "let them find the Secret name typo. The Job waits on pg_isready first, the same "
+            "trick as the Day-2 init container, which is why it is safe to re-run. db-secret is "
+            "the Secret they created on "
+            "Day 3, and have them cast votes between CronJob runs so the counts actually move."
         ),
         day=4,
     ),
@@ -2201,15 +2187,16 @@ kubectl get pod -A -o wide | head""",
                 ),
                 note(
                     "n-tip",
-                    "You just deleted the cluster and everything in it. Rebuild the app with "
-                    "<code>kubectl apply -f k8s/</code> &mdash; this is precisely why manifests "
-                    "live in git and not in your shell history.",
+                    "You just deleted the cluster and <b>every add-on in it</b> &mdash; ingress-nginx, "
+                    "metrics-server and MetalLB all have to go back on. Reinstall them, then "
+                    "<code>kubectl apply -f k8s/</code> to rebuild the app. This is precisely "
+                    "why manifests and install commands live in git, not in your shell history.",
                 ),
             ),
             ratio="1.1fr 1fr",
             gap=28,
         ),
-        eyebrow="Lab 31 &middot; Networking",
+        eyebrow="Lab 33 &middot; Networking",
         kicker="NetworkPolicy is only as real as the plugin enforcing it. kind&rsquo;s default "
         "enforces nothing.",
         notes=(
@@ -2235,41 +2222,29 @@ kubectl run probe --rm -it --restart=Never \\
 cat <<'EOF' | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: redis-allow
+metadata: {name: redis-allow}
 spec:
   podSelector:
-    matchLabels:
-      app: redis
+    matchLabels: {app: redis}
   policyTypes: [Ingress]
   ingress:
   - from:
-    - podSelector:
-        matchLabels:
-          app: vote
-    - podSelector:
-        matchLabels:
-          app: worker
+    - podSelector: {matchLabels: {app: vote}}
+    - podSelector: {matchLabels: {app: worker}}
     ports:
     - {protocol: TCP, port: 6379}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata:
-  name: db-allow
+metadata: {name: db-allow}
 spec:
   podSelector:
-    matchLabels:
-      app: db
+    matchLabels: {app: db}
   policyTypes: [Ingress]
   ingress:
   - from:
-    - podSelector:
-        matchLabels:
-          app: worker
-    - podSelector:
-        matchLabels:
-          app: result
+    - podSelector: {matchLabels: {app: worker}}
+    - podSelector: {matchLabels: {app: result}}
     ports:
     - {protocol: TCP, port: 5432}
 EOF""",
@@ -2303,23 +2278,18 @@ kubectl run probe --rm -it --restart=Never \\
                     "<code>BLOCKED</code> is the policy working. Always use "
                     "<code>-w2</code> or you will sit there.",
                 ),
-                note(
-                    "n-tip",
-                    "The third probe is the important one: same image, same command, "
-                    "<b>different label</b> &mdash; and it connects. Policy decides on labels, "
-                    "not on who you claim to be. Nothing else about the Pod changed.",
-                ),
             ),
             ratio="1.15fr 1fr",
             gap=26,
         ),
-        eyebrow="Lab 32 &middot; NetworkPolicy",
+        eyebrow="Lab 34 &middot; NetworkPolicy",
         kicker="Only <code class=\"i\">vote</code> and <code class=\"i\">worker</code> may reach "
         "<code class=\"i\">redis</code>; only <code class=\"i\">worker</code> and "
         "<code class=\"i\">result</code> may reach <code class=\"i\">db</code>.",
         notes=(
             "Run the before-probe first &mdash; students need to see it succeed or the after-"
-            "probe proves nothing. The labelled third probe is the moment the model clicks: "
+            "probe proves nothing. The third probe is the moment the model clicks: same image, "
+            "same command, different label, and it connects. Policy decides on labels: "
             "identity in Kubernetes networking is a label, full stop. Expect confusion about the "
             "timeout versus refused distinction and address it as soon as the first person says "
             "&ldquo;mine is just hanging&rdquo;."
@@ -2396,7 +2366,7 @@ kubectl get ipaddresspool -n metallb-system""",
             ratio="1fr 1.1fr",
             gap=28,
         ),
-        eyebrow="Lab 33 &middot; LoadBalancer",
+        eyebrow="Lab 31 &middot; LoadBalancer",
         kicker="For four days <code class=\"i\">type: LoadBalancer</code> has been a slide. "
         "Twenty lines of YAML and it becomes real.",
         notes=(
@@ -2462,7 +2432,7 @@ kubectl describe svc vote | tail -6""",
             ratio="1fr 1.15fr",
             gap=28,
         ),
-        eyebrow="Lab 34 &middot; LoadBalancer",
+        eyebrow="Lab 32 &middot; LoadBalancer",
         kicker="One patch, one external IP, and the last theory-only Service type is finally "
         "hands-on.",
         notes=(
@@ -2908,6 +2878,963 @@ kubectl auth can-i list pods \\
             "and limits non-optional. The rule that catches people is that adding a quota "
             "retroactively makes every future Pod without resources fail &mdash; a LimitRange is "
             "how you soften that. One minute each, then move on."
+        ),
+        day=4,
+    ),
+]
+
+# =========================================================== 11. troubleshoot
+BLOCKS["troubleshoot"] = [
+    slide(
+        "Decision tree: symptom to cause",
+        table(
+            ["What you see", "Run this first", "Almost always means"],
+            [
+                [
+                    "<code>Pending</code>",
+                    "<code>kubectl describe pod</code> &rarr; Events",
+                    "No node fits: <b>requests too big</b>, a taint, a nodeSelector, or an "
+                    "unbound PVC",
+                ],
+                [
+                    "<code>ImagePullBackOff</code>",
+                    "<code>kubectl describe pod</code> &rarr; Events",
+                    "Typo in the image name or tag, private registry, or "
+                    "<b>image never loaded into kind</b>",
+                ],
+                [
+                    "<code>CrashLoopBackOff</code>",
+                    "<code>kubectl logs POD --previous</code>",
+                    "The app exits on start: bad config, missing env var, a dependency that is "
+                    "not up",
+                ],
+                [
+                    "<code>OOMKilled</code> / exit <code>137</code>",
+                    "<code>kubectl describe pod</code> &rarr; Last State",
+                    "Memory limit too low, or a genuine leak",
+                ],
+                [
+                    "<code>Running</code> but <code>READY 0/1</code>",
+                    "<code>kubectl describe pod</code> &rarr; probe events",
+                    "<b>Readiness probe failing</b> &mdash; wrong path, wrong port, or too short "
+                    "a delay",
+                ],
+                [
+                    "Service returns nothing",
+                    "<code>kubectl get endpoints SVC</code>",
+                    "Empty list &rarr; selector does not match the labels, or no Pod is Ready",
+                ],
+                [
+                    "Name will not resolve",
+                    "<code>kubectl exec &hellip; -- nslookup NAME</code>",
+                    "Wrong Service name, wrong namespace, or CoreDNS is unhealthy",
+                ],
+                [
+                    "Connection hangs, no refusal",
+                    "<code>kubectl get networkpolicy</code>",
+                    "A policy is dropping the packets &mdash; drops time out, they do not refuse",
+                ],
+            ],
+            note_after=note(
+                "n-tip",
+                "Notice how many rows start with <code>describe pod</code>. When in doubt, that "
+                "is the command &mdash; and the <b>Events</b> at the bottom are where the "
+                "cluster tells you, in plain English, exactly what it could not do.",
+                style="margin-top:16px",
+            ),
+        ),
+        eyebrow="Troubleshooting",
+        kicker="Eight symptoms cover the overwhelming majority of everything that will ever go "
+        "wrong.",
+        notes=(
+            "Tell them to photograph this slide &mdash; it is the single most reusable thing in "
+            "the course. Work the middle column, not the right: the skill is knowing which "
+            "command to reach for, and the cause then reads itself off the output. The last row "
+            "is the one they just met in the NetworkPolicy lab, so point back to it."
+        ),
+        day=4,
+    ),
+    slide(
+        "The six-step playbook",
+        two(
+            steps(
+                [
+                    "<b>Look at the object.</b> <code>kubectl get pod -o wide</code> &mdash; "
+                    "STATUS, READY, RESTARTS, AGE and NODE. Four of those five are clues.",
+                    "<b>Read the Events.</b> <code>kubectl describe pod POD</code> and go "
+                    "straight to the bottom. Scheduling, pulls, mounts and probes all report "
+                    "here.",
+                    "<b>Read the app&rsquo;s own logs.</b> <code>kubectl logs POD</code>, and "
+                    "<code>--previous</code> if it has restarted &mdash; the interesting output "
+                    "belongs to the container that <i>died</i>.",
+                    "<b>Get inside.</b> <code>kubectl exec -it POD -- sh</code>. Check env vars, "
+                    "mounted files, and whether the app answers on localhost.",
+                    "<b>Test the network hop by hop.</b> <code>port-forward</code> to the Pod, "
+                    "then to the Service. If the Pod works and the Service does not, it is the "
+                    "selector or the endpoints.",
+                    "<b>Compare to what works.</b> <code>kubectl get pod GOOD -o yaml &gt; a.yaml</code>, "
+                    "same for the broken one, then <code>diff</code>. The answer is in the diff.",
+                ]
+            ),
+            col(
+                term(
+                    "the toolkit",
+                    """kubectl get pod -o wide
+kubectl describe pod POD
+kubectl logs POD --previous
+kubectl logs -l app=vote --tail=50 --prefix
+kubectl exec -it POD -- sh
+kubectl port-forward pod/POD 8080:80
+kubectl port-forward svc/vote 8080:80
+kubectl get endpoints vote
+kubectl get events --sort-by=.lastTimestamp
+kubectl top pod
+kubectl cp POD:/app/log.txt ./log.txt
+kubectl get pod POD -o yaml""",
+                    cls="xs",
+                ),
+                note(
+                    "n-warn",
+                    "Do not skip steps. The universal failure mode is jumping to step 4, "
+                    "rebuilding an image, redeploying twice and losing twenty minutes &mdash; "
+                    "when step 2 had the answer printed in English the whole time.",
+                ),
+            ),
+            ratio="1.25fr 1fr",
+            gap=28,
+        ),
+        eyebrow="A method, not a hunch",
+        kicker="Same six steps, every time, in this order. Discipline beats intuition here.",
+        notes=(
+            "The value of a playbook is that it works when you are tired and the outage is loud "
+            "&mdash; sell it that way. Step 6, diffing a broken object against a working one, is "
+            "the professional trick most beginners have never seen. Make them run the whole "
+            "sequence once on a healthy Pod so the commands are in their fingers before the "
+            "gauntlet."
+        ),
+        day=4,
+    ),
+    slide(
+        "Failure states and what they really mean",
+        table(
+            ["State", "What the cluster is telling you", "The real cause, usually"],
+            [
+                [
+                    "<code>ImagePullBackOff</code><br><code>ErrImagePull</code>",
+                    "The kubelet asked the registry and did not get an image",
+                    "Typo in name or tag; <code>:latest</code> that no longer exists; private "
+                    "registry with no <code>imagePullSecret</code>; <b>on kind, you forgot "
+                    "<code>kind load docker-image</code></b>",
+                ],
+                [
+                    "<code>ErrImageNeverPull</code>",
+                    "<code>imagePullPolicy: Never</code> and the image is not on that node",
+                    "The image exists on your laptop, not inside the node. Load it, or use "
+                    "<code>IfNotPresent</code>",
+                ],
+                [
+                    "<code>CrashLoopBackOff</code>",
+                    "It started, it died, it started again &mdash; with growing back-off",
+                    "App exits on a missing env var or Secret; the DB is not reachable yet; a "
+                    "Job written as a Deployment; or a liveness probe that is too aggressive",
+                ],
+                [
+                    "<code>OOMKilled</code> (137)",
+                    "SIGKILL from the kernel&rsquo;s OOM killer",
+                    "Memory limit below what the app actually needs, or a leak. Nothing appears "
+                    "in the app&rsquo;s own logs",
+                ],
+                [
+                    "<code>Pending</code>",
+                    "No node passed the filter phase",
+                    "Requests larger than any node; an untolerated taint; unsatisfiable "
+                    "nodeSelector; a PVC with no matching StorageClass",
+                ],
+                [
+                    "<code>READY 0/1</code>, Running",
+                    "The container is up; readiness says do not send traffic",
+                    "Probe path, port or scheme wrong; <code>initialDelaySeconds</code> too "
+                    "short; the app is genuinely not ready yet",
+                ],
+                [
+                    "Service, no endpoints",
+                    "The selector matched zero <b>Ready</b> Pods",
+                    "Selector/label mismatch, wrong namespace, or every Pod failing readiness",
+                ],
+                [
+                    "<code>Terminating</code>, stuck",
+                    "Something is holding the object open",
+                    "A finalizer waiting on a resource; a PVC still mounted; a container "
+                    "ignoring SIGTERM",
+                ],
+            ],
+        ),
+        eyebrow="The eight you will actually meet",
+        kicker="The status is a symptom. This column tells you what the disease usually is.",
+        notes=(
+            "Emphasise that a status is never a diagnosis &mdash; CrashLoopBackOff means "
+            "&lsquo;it keeps dying&rsquo;, not why, and the why is always in the logs of the "
+            "previous container. The kind-specific rows, ErrImageNeverPull and the missing "
+            "<code>kind load</code>, are the ones that will actually bite in this room. Ask which "
+            "of these they have already hit this week; most hands go up for at least three."
+        ),
+        day=4,
+    ),
+    slide(
+        "Reading Events properly",
+        two(
+            term(
+                "events, four ways",
+                """# the bottom of describe -- start here
+kubectl describe pod vote-7d9f-x2k4
+
+# every event in the namespace, newest last
+kubectl get events --sort-by=.lastTimestamp
+
+# only the bad news
+kubectl get events --field-selector \\
+  type=Warning --sort-by=.lastTimestamp
+
+# everything about one object
+kubectl get events --field-selector \\
+  involvedObject.name=vote-7d9f-x2k4
+
+# follow them live during a rollout
+kubectl get events -w""",
+                cls="xs",
+            ),
+            col(
+                bul(
+                    [
+                        "Events are written by <b>controllers</b>, not by your app: the "
+                        "scheduler, the kubelet, the Deployment controller. Each one is a "
+                        "component telling you what it tried and what happened.",
+                        "<b>They expire after one hour by default.</b> An empty event list on an "
+                        "old failure means nothing &mdash; not that nothing went wrong.",
+                        "Read the <code>REASON</code> column first: <code>FailedScheduling</code>, "
+                        "<code>Failed</code>, <code>BackOff</code>, <code>Unhealthy</code>, "
+                        "<code>Killing</code>, <code>FailedMount</code>.",
+                        "<code>kubectl get events</code> is <b>not sorted</b> by default. Always "
+                        "pass <code>--sort-by=.lastTimestamp</code> or you will read them in "
+                        "arbitrary order and reach the wrong conclusion.",
+                    ]
+                ),
+                note(
+                    "n-tip",
+                    "Events answer &ldquo;what did <b>Kubernetes</b> do?&rdquo;. Logs answer "
+                    "&ldquo;what did <b>my app</b> do?&rdquo;. Almost every wasted debugging hour "
+                    "comes from asking one of those questions of the wrong source.",
+                ),
+            ),
+            ratio="1fr 1.15fr",
+            gap=30,
+        ),
+        eyebrow="90% of failures explain themselves here",
+        kicker="Events are the cluster narrating its own decisions. Most people never read them.",
+        notes=(
+            "The events-versus-logs split is the sentence to leave them with, and it is worth "
+            "repeating twice. The one-hour expiry catches everyone: a Pod that failed overnight "
+            "has no events left, so capture them while the failure is fresh. Make the sort-by "
+            "flag a habit now, in class, rather than after they misread an unsorted list in "
+            "production."
+        ),
+        day=4,
+    ),
+    lab(
+        "The troubleshooting gauntlet",
+        two(
+            col(
+                '<div class="failbox r"><div class="fb-h">'
+                '<span class="fb-badge">RULES</span>'
+                '<span class="fb-t">5 faults &middot; 30 minutes &middot; pairs</span>'
+                "</div>"
+                "<p>Your partner runs the break script against <b>your</b> cluster and does not "
+                "tell you what it did. Then you swap. The Voting App is broken in five "
+                "independent ways.</p>"
+                '<div class="fb-note">For each fault write down three things: the '
+                "<b>symptom</b> you saw, the <b>command</b> that revealed the cause, and the "
+                "<b>fix</b> you applied. The write-up is the exercise &mdash; guessing your way "
+                "to a green cluster teaches nothing.</div></div>",
+                steps(
+                    [
+                        "Work the <b>playbook in order</b>. Resist the urge to jump to a fix.",
+                        "<code>kubectl get pod -o wide</code> across the whole app first &mdash; "
+                        "get the shape of the damage before touching anything.",
+                        "Fix one fault, confirm it, then move on. Two changes at once and you "
+                        "will not know which one worked.",
+                        "Done when all five components are <code>Running</code> and "
+                        "<code>READY</code>, and a vote you cast appears in the result page.",
+                    ]
+                ),
+            ),
+            col(
+                term(
+                    "break.sh &mdash; your partner runs this",
+                    """#!/bin/sh
+# 1 image that does not exist
+kubectl set image deploy/vote vote=vote:v9-typo
+
+# 2 memory limit far too small
+kubectl patch deploy worker -p \\
+'{"spec":{"template":{"spec":{"containers":\\
+[{"name":"worker","resources":{"limits":\\
+{"memory":"8Mi"}}}]}}}}'
+
+# 3 service selector no longer matches
+kubectl patch svc redis -p \\
+'{"spec":{"selector":{"app":"redis-cache"}}}'
+
+# 4 readiness probe on a path that 404s
+kubectl patch deploy result -p \\
+'{"spec":{"template":{"spec":{"containers":\\
+[{"name":"result","readinessProbe":{"httpGet":\\
+{"path":"/healthz","port":80}}}]}}}}'
+
+# 5 requests no node can satisfy
+kubectl set resources deploy/db \\
+  --requests=cpu=32,memory=64Gi
+
+echo "5 faults planted. good luck."
+""",
+                    cls="xs",
+                ),
+                note(
+                    "n-warn",
+                    "Do <b>not</b> read the script before you start. Five minutes of honest "
+                    "diagnosis is worth more than a correct answer you looked up &mdash; and in "
+                    "an incident nobody will hand you the script.",
+                ),
+            ),
+            ratio="1fr 1.1fr",
+            gap=26,
+        ),
+        eyebrow="Lab 35 &middot; Troubleshooting",
+        kicker="Five planted faults, thirty minutes, one working Voting App at the end.",
+        notes=(
+            "Time it strictly and hold the room to the playbook &mdash; the discipline is the "
+            "skill being trained, not the five specific bugs. Circulate and ask &ldquo;what did "
+            "the Events say?&rdquo; rather than giving hints; most pairs are one "
+            "<code>describe</code> away. Debrief at the end by walking all five faults and "
+            "mapping each back to a row of the decision-tree slide."
+        ),
+        day=4,
+    ),
+]
+
+# =========================================================== 12. bestpractice
+BLOCKS["bestpractice"] = [
+    slide(
+        "Production readiness checklist",
+        two(
+            panel(
+                "Before it ships",
+                bul(
+                    [
+                        "<b>Pinned image tags.</b> <code>vote:1.4.2</code>, never "
+                        "<code>:latest</code> &mdash; and ideally a digest.",
+                        "<b>Requests and limits on every container.</b> Memory limit always; CPU "
+                        "request always.",
+                        "<b>All three probes considered.</b> Readiness nearly always, liveness "
+                        "carefully, startup for slow boots.",
+                        "<b>State on a PVC</b>, never in the container filesystem or on "
+                        "<code>hostPath</code>.",
+                        "<b>Secrets externalised</b> &mdash; out of the image, out of git, "
+                        "injected at runtime.",
+                        "<b>More than one replica</b> for anything stateless, so a node can die.",
+                    ]
+                ),
+                "t-green",
+            ),
+            panel(
+                "Around it",
+                bul(
+                    [
+                        "<b>Its own namespace</b>, with a ResourceQuota and a LimitRange.",
+                        "<b>NetworkPolicy on the data tier</b> at minimum &mdash; nothing "
+                        "reaches the database that does not need to.",
+                        "<b>HPA</b> wherever load varies, backed by real requests.",
+                        "<b>Every manifest in git</b>, applied from CI, never from a laptop.",
+                        "<b><code>--record</code> or a CHANGE-CAUSE annotation</b> on rollouts, "
+                        "so <code>rollout history</code> is readable.",
+                        "<b>A rollback you have actually rehearsed</b>, not one you assume works.",
+                    ]
+                ),
+                "t-blue",
+            ),
+            ratio="1fr 1fr",
+            gap=30,
+        )
+        + note(
+            "n-tip",
+            "Run this list against the Voting App you just built. Be honest about which lines you "
+            "would fail today &mdash; that gap is your first week&rsquo;s work in any real job.",
+            style="margin-top:16px",
+        ),
+        eyebrow="Best practices",
+        kicker="Twelve lines. If you can tick them all, the thing is genuinely production-ready.",
+        notes=(
+            "Turn this into an exercise, not a reading: put the Voting App manifests up and audit "
+            "them line by line against the list. The two students always underestimate are "
+            "rehearsed rollbacks and manifests-in-git &mdash; both are process, not YAML, and "
+            "both are what actually saves you at 3am."
+        ),
+        day=4,
+    ),
+    slide(
+        "The top ten mistakes",
+        cards(
+            [
+                (
+                    "&#9888;",
+                    "1 &middot; No resource requests",
+                    "The scheduler assumes zero, packs the node, and everything degrades "
+                    "together. Also silently disables your HPA.",
+                    "t-maroon",
+                ),
+                (
+                    "&#127991;",
+                    "2 &middot; :latest tags",
+                    "Two Pods of the same Deployment can run different code. Rollback becomes "
+                    "meaningless because there is nothing to roll back to.",
+                    "t-amber",
+                ),
+                (
+                    "&#128273;",
+                    "3 &middot; Secrets in git",
+                    "base64 is not encryption. Once it is in history it is public forever "
+                    "&mdash; rotate the credential, do not just delete the commit.",
+                    "t-maroon",
+                ),
+                (
+                    "&#128260;",
+                    "4 &middot; No readiness probe",
+                    "Traffic hits Pods that cannot serve yet. Every rolling update drops "
+                    "requests &mdash; the zero-downtime myth from Day 2.",
+                    "t-blue",
+                ),
+                (
+                    "&#128163;",
+                    "5 &middot; Aggressive liveness probe",
+                    "A slow app under load fails the probe, gets restarted, comes back slower. "
+                    "A liveness probe can turn a hiccup into an outage.",
+                    "t-violet",
+                ),
+                (
+                    "&#128230;",
+                    "6 &middot; Bare Pods in production",
+                    "Nothing recreates them. The node reboots and your app is simply gone. "
+                    "Always a Deployment, StatefulSet, Job or DaemonSet.",
+                    "t-teal",
+                ),
+                (
+                    "&#128193;",
+                    "7 &middot; Everything in default",
+                    "No quotas, no boundaries, no way to delete one app cleanly, and RBAC that "
+                    "cannot be scoped to anything useful.",
+                    "t-slate",
+                ),
+                (
+                    "&#128220;",
+                    "8 &middot; No CHANGE-CAUSE",
+                    "<code>rollout history</code> full of &lt;none&gt;. You know a revision 4 "
+                    "exists; you have no idea what it changed.",
+                    "t-gold",
+                ),
+                (
+                    "&#128190;",
+                    "9 &middot; hostPath for app data",
+                    "Ties the Pod to one node&rsquo;s disk. Reschedule and the data is on the "
+                    "wrong machine. Use a PVC.",
+                    "t-green",
+                ),
+                (
+                    "&#128274;",
+                    "10 &middot; No NetworkPolicy",
+                    "Any compromised Pod anywhere reaches your database directly. Default-allow "
+                    "is a choice you are making by not choosing.",
+                    "t-maroon",
+                ),
+            ],
+            cols=5,
+        ),
+        eyebrow="Learn these from other people",
+        kicker="Every one of these is common, every one is cheap to avoid, and every one has "
+        "caused a real outage.",
+        notes=(
+            "Go quickly &mdash; one line each, this is a reference slide not a lecture. Ask the "
+            "room to vote on which they have personally done; the honesty gets a laugh and makes "
+            "it stick. Numbers 1, 4 and 5 are the ones that cause real production incidents, so "
+            "spend the extra ten seconds there."
+        ),
+        day=4,
+    ),
+    slide(
+        "Security basics",
+        two(
+            term(
+                "a sane securityContext",
+                """spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+  containers:
+  - name: vote
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
+    resources:
+      limits:
+        memory: 256Mi""",
+                cls="xs",
+            ),
+            col(
+                bul(
+                    [
+                        "<b>Do not run as root.</b> A container escape as UID 0 is a very "
+                        "different afternoon from one as UID 10001. Set <code>runAsNonRoot</code> "
+                        "and let the cluster refuse the Pod if the image ignores it.",
+                        "<b>Drop all capabilities</b>, then add back only what you truly need. "
+                        "Almost no web app needs any.",
+                        "<b>Read-only root filesystem</b> where you can &mdash; mount an "
+                        "<code>emptyDir</code> for scratch space instead.",
+                        "<b>No secrets in the image and none in git.</b> Inject at runtime; "
+                        "rotate anything that ever leaked.",
+                        "<b>Scan your images</b> (<code>trivy image vote:1.4.2</code>) and keep "
+                        "base images small &mdash; less installed means less to exploit.",
+                    ]
+                ),
+                note(
+                    "n-info",
+                    "Clusters increasingly enforce this centrally with <b>Pod Security "
+                    "Admission</b> &mdash; label a namespace "
+                    "<code>pod-security.kubernetes.io/enforce=restricted</code> and non-compliant "
+                    "Pods are rejected at creation. Better to write compliant manifests now than "
+                    "to discover it at deploy time.",
+                ),
+            ),
+            ratio="1fr 1.2fr",
+            gap=30,
+        ),
+        eyebrow="The cheap 80%",
+        kicker="Five settings that cost nothing and remove most of the easy attacks.",
+        notes=(
+            "Keep it practical &mdash; this is a hardening checklist, not a security course. The "
+            "line that lands is that root inside a container is much closer to root on the node "
+            "than people assume. Mention Pod Security Admission so they are not blindsided when a "
+            "real cluster rejects their manifest."
+        ),
+        day=4,
+    ),
+    slide(
+        "Resource and cost hygiene",
+        two(
+            col(
+                bul(
+                    [
+                        "<b>You pay for requests, not for usage.</b> A cluster 95% requested and "
+                        "10% used costs the same as one that is genuinely busy. This is where "
+                        "cloud bills go to die.",
+                        "<b>Size requests from measurements.</b> Run under real load, read "
+                        "<code>kubectl top</code>, set the request just above the observed "
+                        "steady state &mdash; then revisit it.",
+                        "<b>Memory limits: yes. CPU limits: think.</b> A memory limit protects "
+                        "the node from a leak. An aggressive CPU limit just throttles your app "
+                        "into latency that looks like a bug.",
+                        "<b>Scale to what you need.</b> An HPA with a sane "
+                        "<code>minReplicas</code> beats a fixed count guessed at peak.",
+                        "<b>Delete what you are not using.</b> Finished Jobs, evicted Pods, "
+                        "orphaned PVCs and unattached load balancers all keep costing.",
+                    ]
+                ),
+            ),
+            col(
+                term(
+                    "the hygiene sweep",
+                    """# requested vs actually used
+kubectl describe node iti-worker \\
+  | grep -A8 'Allocated resources'
+kubectl top nodes
+
+# clutter that still costs money
+kubectl get pod -A \\
+  --field-selector status.phase=Failed
+kubectl get job -A
+kubectl get pvc -A
+kubectl get svc -A \\
+  --field-selector spec.type=LoadBalancer
+
+# clean up finished work
+kubectl delete pod -A \\
+  --field-selector status.phase=Succeeded""",
+                    cls="xs",
+                ),
+                note(
+                    "n-tip",
+                    "Do this sweep monthly and you will find something every single time. The "
+                    "usual winners: a forgotten LoadBalancer, a 100Gi PVC nobody mounted since "
+                    "March, and a namespace of Evicted Pods from an incident last quarter.",
+                ),
+            ),
+            ratio="1.15fr 1fr",
+            gap=30,
+        ),
+        eyebrow="What it costs to run",
+        kicker="The gap between requested and used is real money, on someone&rsquo;s real "
+        "invoice.",
+        notes=(
+            "This is the slide that makes them useful to a business rather than just to a "
+            "cluster. The you-pay-for-requests point is the whole argument for sizing honestly, "
+            "and it connects the morning&rsquo;s theory to a number a manager cares about. The "
+            "cleanup commands are worth running live on the class cluster; there will be junk in "
+            "it already."
+        ),
+        day=4,
+    ),
+]
+
+# ================================================================== 13. final
+BLOCKS["final"] = [
+    lab(
+        "Final challenge: the Voting App, from scratch",
+        two(
+            col(
+                '<div class="failbox r"><div class="fb-h">'
+                '<span class="fb-badge">SPEC</span>'
+                '<span class="fb-t">90 minutes &middot; fresh namespace &middot; solo</span>'
+                "</div>"
+                "<p>Create namespace <code>vote-final</code> and deploy the complete Voting App "
+                "into it &mdash; <b>from an empty editor</b>. No copying yesterday&rsquo;s "
+                "files. Docs and <code>kubectl explain</code> are allowed; your old manifests "
+                "are not.</p>"
+                '<div class="fb-note">Done when: you can cast a vote through the Ingress, see it '
+                "counted on <code>/result</code>, delete any Pod and watch it recover, and "
+                "<b>delete the <code>db</code> Pod without losing a single vote</b>."
+                "</div></div>",
+                term(
+                    "start here",
+                    """kubectl create namespace vote-final
+kubectl config set-context --current \\
+  --namespace=vote-final
+
+# work in files, apply the directory
+mkdir final && cd final
+kubectl apply -f .
+
+kubectl get all,cm,secret,pvc,ing,hpa,netpol""",
+                    cls="xs",
+                ),
+            ),
+            col(
+                table(
+                    ["#", "Requirement"],
+                    [
+                        [
+                            "1",
+                            "<b>5 Deployments</b>: <code>vote</code>, <code>result</code>, "
+                            "<code>worker</code>, <code>redis</code>, <code>db</code>. "
+                            "<code>vote</code> and <code>result</code> at 2 replicas.",
+                        ],
+                        [
+                            "2",
+                            "<b>4 Services.</b> Named exactly <code>vote</code>, "
+                            "<code>result</code>, <code>redis</code>, <code>db</code>. "
+                            "<code>worker</code> gets none &mdash; know why.",
+                        ],
+                        [
+                            "3",
+                            "<b>ConfigMap</b> supplying <code>OPTION_A</code> and "
+                            "<code>OPTION_B</code> to <code>vote</code>. Pick your own two "
+                            "options.",
+                        ],
+                        [
+                            "4",
+                            "<b>Secret</b> supplying <code>POSTGRES_PASSWORD</code> to "
+                            "<code>db</code>. No password anywhere in a Deployment.",
+                        ],
+                        [
+                            "5",
+                            "<b>PVC</b> for <code>db</code>, mounted at "
+                            "<code>/var/lib/postgresql/data</code>. Votes survive a Pod delete.",
+                        ],
+                        [
+                            "6",
+                            "<b>Probes</b>: readiness on <code>vote</code> and "
+                            "<code>result</code>; an <code>exec</code> "
+                            "<code>pg_isready</code> probe on <code>db</code>.",
+                        ],
+                        [
+                            "7",
+                            "<b>requests and limits on every container.</b> "
+                            "<code>db</code> must come out <b>Guaranteed</b>.",
+                        ],
+                        [
+                            "8",
+                            "<b>HPA</b> on <code>vote</code>: min 2, max 8, CPU target 60%.",
+                        ],
+                        [
+                            "9",
+                            "<b>Ingress</b>: <code>/</code> &rarr; <code>vote</code>, "
+                            "<code>/result</code> &rarr; <code>result</code>.",
+                        ],
+                        [
+                            "10",
+                            "<b>NetworkPolicy</b>: only <code>vote</code>+<code>worker</code> "
+                            "reach <code>redis</code>; only <code>worker</code>+"
+                            "<code>result</code> reach <code>db</code>.",
+                        ],
+                    ],
+                ),
+                note(
+                    "n-warn",
+                    "The Services <b>must</b> be named <code>redis</code> and <code>db</code>. "
+                    "The app resolves those hostnames from inside its own code &mdash; call the "
+                    "Service <code>postgres</code> and everything comes up green while the app "
+                    "quietly does nothing. DNS name equals Service name.",
+                ),
+            ),
+            ratio="1fr 1.35fr",
+            gap=28,
+        ),
+        eyebrow="Lab 36 &middot; Final challenge",
+        kicker="Ten requirements, one namespace, everything you have learned in four days.",
+        notes=(
+            "Insist on the empty editor &mdash; the whole value is in recalling the object shapes "
+            "unaided, and <code>kubectl explain</code> is the tool that makes that fair. Read "
+            "requirement 2 and the Service-naming warning aloud at the start, because that one "
+            "failure is silent and will eat somebody&rsquo;s last twenty minutes. Circulate with "
+            "the rubric visible so they know exactly what is being checked."
+        ),
+        day=4,
+    ),
+    slide(
+        "How it is graded",
+        two(
+            table(
+                ["Area", "Pts", "What earns them"],
+                [
+                    [
+                        "<b>It runs</b>",
+                        "30",
+                        "All 5 components <code>Running</code> and <code>READY</code>; a vote "
+                        "cast in the UI appears on the result page",
+                    ],
+                    [
+                        "<b>Config &amp; Secrets</b>",
+                        "15",
+                        "ConfigMap feeds the vote options; Secret feeds the DB password; no "
+                        "plaintext credential in any Deployment",
+                    ],
+                    [
+                        "<b>Storage</b>",
+                        "15",
+                        "PVC <code>Bound</code> and mounted; <code>kubectl delete pod -l "
+                        "app=db</code> loses zero votes",
+                    ],
+                    [
+                        "<b>Health</b>",
+                        "10",
+                        "Readiness probes present and passing; the <code>pg_isready</code> exec "
+                        "probe on <code>db</code>",
+                    ],
+                    [
+                        "<b>Resources</b>",
+                        "10",
+                        "Requests and limits on every container; <code>db</code> reports "
+                        "<code>qosClass: Guaranteed</code>",
+                    ],
+                    [
+                        "<b>Scaling</b>",
+                        "10",
+                        "HPA exists and shows a real percentage &mdash; not "
+                        "<code>&lt;unknown&gt;</code>",
+                    ],
+                    [
+                        "<b>Networking</b>",
+                        "10",
+                        "Ingress routes both paths; the two NetworkPolicies block an unlabelled "
+                        "probe Pod",
+                    ],
+                ],
+            ),
+            col(
+                term(
+                    "grade yourself in one pass",
+                    """kubectl get all -n vote-final
+kubectl get cm,secret,pvc,ing,hpa,netpol \\
+  -n vote-final
+
+kubectl get pod -n vote-final -o custom-columns=\\
+NAME:.metadata.name,QOS:.status.qosClass
+
+kubectl get hpa -n vote-final
+# TARGETS must not be <unknown>
+
+# the storage proof
+kubectl delete pod -n vote-final -l app=db
+# ...then reload /result. votes still there?
+
+# the policy proof
+kubectl run probe -n vote-final --rm -it \\
+  --restart=Never --image=busybox:1.36 \\
+  -- nc -zv -w2 db 5432 || echo BLOCKED""",
+                    cls="xs",
+                ),
+                note(
+                    "n-tip",
+                    "<b>85+ is a pass.</b> Run this column on yourself before you call me over "
+                    "&mdash; every check here is a command you already know, and self-grading is "
+                    "the habit that makes you trustworthy on a real team.",
+                ),
+            ),
+            ratio="1.25fr 1fr",
+            gap=28,
+        ),
+        eyebrow="Rubric &middot; 100 points",
+        kicker="Seven areas. Every one of them is verifiable with a command, not an opinion.",
+        notes=(
+            "Show the rubric <i>before</i> they start the challenge, not after &mdash; a hidden "
+            "rubric tests luck, a visible one tests skill. Push the self-grading column hard: the "
+            "point is that they can prove their own work, which is exactly what a team will "
+            "expect. The two proofs at the bottom, storage and policy, are the ones people forget "
+            "to actually test."
+        ),
+        day=4,
+    ),
+]
+
+# ============================================================= 14. interview4
+BLOCKS["interview4"] = [
+    slide(
+        "Day 4 interview questions",
+        two(
+            col(
+                steps(
+                    [
+                        "<b>What is the difference between a resource request and a limit?</b> "
+                        "<i>Requests are used by the scheduler to place the Pod and are reserved "
+                        "on the node; limits are enforced at runtime by the kernel. Requests "
+                        "schedule, limits constrain.</i>",
+                        "<b>What happens when a container exceeds its CPU limit? Its memory "
+                        "limit?</b> <i>CPU is throttled &mdash; it just runs slower. Memory is "
+                        "not compressible, so the container is OOMKilled with exit code 137 and "
+                        "restarted.</i>",
+                        "<b>Name the three QoS classes and how a Pod gets each.</b> "
+                        "<i>Guaranteed: every container sets requests == limits for CPU and "
+                        "memory. Burstable: something is set but they do not match. BestEffort: "
+                        "nothing set. Eviction goes BestEffort first, Guaranteed last.</i>",
+                        "<b>Difference between nodeSelector, node affinity, and taints?</b> "
+                        "<i>nodeSelector and affinity are Pod-side attraction &mdash; affinity "
+                        "adds operators and soft preferences. Taints are node-side repulsion; a "
+                        "toleration only grants permission, it does not attract.</i>",
+                    ]
+                ),
+            ),
+            col(
+                steps(
+                    [
+                        "<b>Why might an HPA never scale?</b> <i>No metrics-server, or &mdash; "
+                        "far more often &mdash; no CPU request on the container. Utilisation is "
+                        "a percentage of the request, so with no request there is no metric. It "
+                        "shows &lt;unknown&gt; and fails silently.</i>",
+                        "<b>Job versus Deployment?</b> <i>A Deployment keeps a process running "
+                        "forever and treats exit 0 as a failure. A Job runs to completion and "
+                        "treats exit 0 as success. Jobs must use restartPolicy OnFailure or "
+                        "Never.</i>",
+                        "<b>Do namespaces isolate network traffic?</b> <i>No. Any Pod can reach "
+                        "any Pod in any namespace by default. Only a NetworkPolicy &mdash; "
+                        "enforced by a CNI that supports it &mdash; restricts traffic.</i>",
+                        "<b>How does a NetworkPolicy actually work?</b> <i>It selects Pods with a "
+                        "podSelector; those Pods flip to deny-by-default for the directions "
+                        "listed, and only explicitly allowed traffic passes. Policies are "
+                        "additive and there is no deny rule.</i>",
+                    ]
+                ),
+            ),
+            ratio="1fr 1fr",
+            gap=28,
+        ),
+        eyebrow="Eight you will genuinely be asked",
+        kicker="Answer each in two sentences. Interviewers are testing the model, not your "
+        "vocabulary.",
+        notes=(
+            "Run this as a cold-call round rather than reading the answers &mdash; they have "
+            "done every one of these with their hands today. Questions 1, 2 and 5 come up in "
+            "almost every Kubernetes interview, so make sure everybody can say those three "
+            "cleanly. Push for the short answer; rambling is what actually loses interviews."
+        ),
+        day=4,
+    ),
+    slide(
+        "What to study next",
+        two(
+            cards(
+                [
+                    (
+                        "&#127891;",
+                        "CKAD",
+                        "Developer-focused. Pods, Deployments, config, storage, probes, Jobs, "
+                        "Services &mdash; almost exactly the four days you just did. The natural "
+                        "next step, and it is hands-on in a real terminal.",
+                        "t-blue",
+                    ),
+                    (
+                        "&#128737;",
+                        "CKA",
+                        "Administrator-focused. Adds cluster installation with kubeadm, etcd "
+                        "backup and restore, upgrades, node maintenance, RBAC and cluster "
+                        "networking in depth.",
+                        "t-violet",
+                    ),
+                    (
+                        "&#128214;",
+                        "The official docs",
+                        "<code>kubernetes.io/docs</code> &mdash; genuinely excellent, and the "
+                        "only reference allowed during the exams. Learn to navigate it fast; "
+                        "that is itself an exam skill.",
+                        "t-teal",
+                    ),
+                ],
+                cols=3,
+            ),
+            col(
+                bul(
+                    [
+                        "<b>Live in <code>kubectl explain</code>.</b> "
+                        "<code>kubectl explain deploy.spec.template.spec.containers</code> is "
+                        "faster than any search engine and always matches your cluster version.",
+                        "<b>Then learn Helm properly</b> &mdash; you saw the shape today; write "
+                        "a chart for the Voting App and it will click.",
+                        "<b>Then GitOps</b> (Argo CD or Flux): git becomes the only way anything "
+                        "reaches the cluster. This is how serious teams deploy.",
+                        "<b>Then observability</b> &mdash; Prometheus and Grafana. "
+                        "metrics-server told you the numbers exist; these tell you what they "
+                        "meant last Tuesday.",
+                        "<b>Keep a cluster.</b> kind on your laptop costs nothing. The people who "
+                        "get good are the ones who kept breaking one.",
+                    ]
+                ),
+                note(
+                    "n-tip",
+                    "Rebuild the Voting App from memory once a week for a month. Four "
+                    "repetitions and the object shapes stop being something you look up and "
+                    "become something you know &mdash; which is precisely the difference an "
+                    "interviewer is listening for.",
+                ),
+            ),
+            ratio="1.2fr 1fr",
+            gap=30,
+        ),
+        eyebrow="Where to go from here",
+        kicker="You have the foundation. Here is the shortest path from here to hired.",
+        notes=(
+            "Be concrete about CKAD being the closer match to what they just learned &mdash; "
+            "people default to CKA because it sounds more senior and then struggle. The "
+            "docs-navigation point is real exam advice: both certifications allow the docs, so "
+            "speed of lookup is part of the score. End on the weekly rebuild; it is the single "
+            "highest-return habit you can hand them."
         ),
         day=4,
     ),

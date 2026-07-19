@@ -26,6 +26,8 @@ assert n_imgs == 59, f"expected 59 logo imgs, found {n_imgs}"
 s = s.replace(img_tag, '<span class="iti-mark" role="img" aria-label="ITI"></span>')
 
 # One background definition + the sizes the old `img` rules gave each context.
+EXTRA_CSS = ".cols-1{grid-template-columns:1fr}"
+
 logo_css = (
     ".iti-mark{display:block;background-image:url(data:image/png;base64,"
     + LOGO
@@ -36,6 +38,7 @@ logo_css = (
     ".close-lg .iti-mark{width:104px;height:104px}"
 )
 close_style = s.rindex("</style>")
+logo_css += EXTRA_CSS
 s = s[:close_style] + logo_css + s[close_style:]
 
 # ------------------------------------------------- 2 & 3. footer numbers + day
