@@ -211,7 +211,7 @@ b.hi{color:#fff;font-weight:600}
 /* ===========================================================
    TABLE
    =========================================================== */
-.tbl-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg2)}
+.tbl-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg2)}.tbl-wrap{flex:none}
 .tbl{width:100%;border-collapse:collapse;font-size:23px}
 .tbl th{background:var(--bg3);font-family:var(--font-m);font-size:17px;letter-spacing:.13em;
   text-transform:uppercase;color:var(--iti-lite);text-align:left;padding:17px 26px;font-weight:600;
@@ -1103,7 +1103,15 @@ class Deck {
     let bottom=0;
     body.querySelectorAll(':scope > *, :scope > * > *, :scope > * > * > *').forEach(el=>{
       const r=el.getBoundingClientRect();
-      if(r.height>0 && r.bottom>bottom) bottom=r.bottom;
+      if(r.height<=0) return;
+      let b=r.bottom;
+      // A .tbl-wrap hides its overflow, so its box reports the CLIPPED height and
+      // the slide looks like it fits while rows are cut off. Measure the real
+      // content instead, converted back to stage pixels.
+      if(el.classList.contains('tbl-wrap') && el.scrollHeight>el.clientHeight+4){
+        b = r.top + el.scrollHeight * (r.height/el.clientHeight);
+      }
+      if(b>bottom) bottom=b;
     });
     if(!bottom) return;
     const top=body.getBoundingClientRect().top;

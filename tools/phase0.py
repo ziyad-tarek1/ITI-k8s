@@ -26,7 +26,9 @@ assert n_imgs == 59, f"expected 59 logo imgs, found {n_imgs}"
 s = s.replace(img_tag, '<span class="iti-mark" role="img" aria-label="ITI"></span>')
 
 # One background definition + the sizes the old `img` rules gave each context.
-EXTRA_CSS = ".cols-1{grid-template-columns:1fr}"
+EXTRA_CSS = (".cols-1{grid-template-columns:1fr}"
+             # a shrinking .tbl-wrap hides table rows behind overflow:hidden
+             ".tbl-wrap{flex:none}")
 
 logo_css = (
     ".iti-mark{display:block;background-image:url(data:image/png;base64,"

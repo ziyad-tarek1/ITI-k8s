@@ -28,7 +28,15 @@ FIT = """
     let bottom=0;
     body.querySelectorAll(':scope > *, :scope > * > *, :scope > * > * > *').forEach(el=>{
       const r=el.getBoundingClientRect();
-      if(r.height>0 && r.bottom>bottom) bottom=r.bottom;
+      if(r.height<=0) return;
+      let b=r.bottom;
+      // A .tbl-wrap hides its overflow, so its box reports the CLIPPED height and
+      // the slide looks like it fits while rows are cut off. Measure the real
+      // content instead, converted back to stage pixels.
+      if(el.classList.contains('tbl-wrap') && el.scrollHeight>el.clientHeight+4){
+        b = r.top + el.scrollHeight * (r.height/el.clientHeight);
+      }
+      if(b>bottom) bottom=b;
     });
     if(!bottom) return;
     const top=body.getBoundingClientRect().top;
