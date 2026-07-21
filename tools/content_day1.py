@@ -647,7 +647,7 @@ kubectl label pod cache app=web --overwrite
 # ...and back out again
 kubectl label pod cache app=cache --overwrite
 
-kubectl label pod web-1 tier-        # remove a label""",
+kubectl label pod web-1 env-         # remove a label""",
                 ),
             ),
             col(
@@ -660,7 +660,7 @@ kubectl label pod web-1 tier-        # remove a label""",
                     "<b>set</b>, and the set changes as the world changes.",
                     "In the watch terminal, relabel <code>cache</code>. It <b>appears</b> in "
                     "the <code>app=web</code> stream without touching the query.",
-                    "<code>tier-</code> (trailing dash) removes a label. Clean up: "
+                    "<code>env-</code> (trailing dash) removes a label. Clean up: "
                     "<code>kubectl delete pod web-1 web-2 cache</code>.",
                 ]),
                 note(
@@ -1161,7 +1161,9 @@ VAIMAGES = [
             col(
                 term(
                     "start the worker FIRST",
-                    """cd voting-app
+                    """# the course repo carries the app source
+git clone https://github.com/ziyad-tarek1/ITI-k8s.git ~/ITI-k8s
+cd ~/ITI-k8s/voting-app
 ls                     # vote/ result/ worker/ docker-compose.yml
 
 # The Java worker is Maven-based: it resolves, verifies and packages.

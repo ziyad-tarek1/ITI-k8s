@@ -2140,6 +2140,11 @@ networking:
   podSubnet: "192.168.0.0/16"
 nodes:
 - role: control-plane
+  kubeadmConfigPatches:      # keep Lab 1's - ingress needs the label
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs: {node-labels: "ingress-ready=true"}
   extraPortMappings:
   - {containerPort: 80, hostPort: 80}
   - {containerPort: 30080, hostPort: 30080}
@@ -2149,8 +2154,7 @@ EOF
 
 kind create cluster --name iti --config kind-day4.yaml
 
-# EXPECTED: every node NotReady, no CNI yet
-kubectl get nodes
+kubectl get nodes    # EXPECTED: all NotReady, no CNI yet
 
 kubectl apply -f https://raw.githubusercontent.com/\\
 projectcalico/calico/v3.28.0/manifests/calico.yaml
@@ -2158,9 +2162,8 @@ projectcalico/calico/v3.28.0/manifests/calico.yaml
 kubectl wait --for=condition=ready pod \\
   -l k8s-app=calico-node -n kube-system --timeout=300s
 
-# now Ready, and Pods get IPs from 192.168.0.0/16
-kubectl get nodes
-kubectl get pod -A -o wide | head""",
+# now Ready, and Pod IPs come from 192.168.0.0/16
+kubectl get nodes && kubectl get pod -A -o wide | head""",
                 cls="xs",
             ),
             col(
@@ -2186,11 +2189,13 @@ kubectl get pod -A -o wide | head""",
                     ]
                 ),
                 note(
-                    "n-tip",
-                    "You just deleted the cluster and <b>every add-on in it</b> &mdash; ingress-nginx, "
-                    "metrics-server and MetalLB all have to go back on. Reinstall them, then "
-                    "<code>kubectl apply -f k8s/</code> to rebuild the app. This is precisely "
-                    "why manifests and install commands live in git, not in your shell history.",
+                    "n-warn",
+                    "You deleted <b>everything</b> &mdash; app, Secrets, PVC data, add-ons. "
+                    "Restore: <code>kind load</code> all three images (new nodes, empty image "
+                    "stores), <code>kubectl apply -f k8s-manifests/</code>, then reinstall "
+                    "ingress-nginx. Only the <b>images</b> survive &mdash; they live in the "
+                    "host&rsquo;s Docker daemon, not the cluster.",
+                    title="Restore",
                 ),
             ),
             ratio="1.1fr 1fr",

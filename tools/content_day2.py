@@ -809,9 +809,12 @@ varollout = [
             col(
                 term(
                     "build v2 and get it into kind",
-                    "cd ~/voting-app\n\n"
-                    "# make a visible change - edit the page heading\n"
-                    "sed -i 's/Cats vs Dogs/Cats vs Dogs v2/' vote/templates/index.html\n\n"
+                    "cd ~/ITI-k8s/voting-app\n\n"
+                    "# make a visible change. The heading is a Jinja template -\n"
+                    "# it says {{option_b}}, NOT the literal words 'Cats vs Dogs'.\n"
+                    "sed -i 's|{{option_b}}!|{{option_b}}! (v2)|g' \\\n"
+                    "  vote/templates/index.html\n"
+                    "grep -c 'v2' vote/templates/index.html    # must be 2\n\n"
                     "docker build -t iti/vote:v2 ./vote\n\n"
                     "# the cluster cannot see your local daemon - push it in\n"
                     "kind load docker-image iti/vote:v2 --name iti\n\n"

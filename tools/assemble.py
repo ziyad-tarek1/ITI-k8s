@@ -133,6 +133,117 @@ curl -s http://result.localtest.me | head -n3""",
     day=4,
 )
 
+# The two throwaway-nginx labs (old 39 and 46) used to run in whatever namespace
+# happened to be current -- by Day 2 that is `vote`. Worse, old 46 took nodePort
+# 30080, the exact port the Voting App's own Service asks for one slide later, so
+# `vasvc` failed with "provided port is already allocated". Both now run in `demo`
+# and old 46 cleans up after itself.
+WORKLOAD_LAB = deck.lab(
+    "Deploy, scale, roll out, self-heal",
+    deck.two(
+        deck.term(
+            "throwaway: the demo namespace",
+            """# a Deployment of 3 replicas
+kubectl create deployment web -n demo \\
+  --image=nginx:1.27 --replicas=3
+kubectl get pods -l app=web -n demo -o wide
+
+# scale out
+kubectl scale deploy/web -n demo --replicas=6
+
+# rolling update, then watch it
+kubectl set image deploy/web -n demo nginx=nginx:1.29
+kubectl rollout status deploy/web -n demo
+
+# bad release? one command back
+kubectl rollout undo deploy/web -n demo
+
+# self-heal: kill a pod, watch it return
+kubectl delete pod -n demo "$(kubectl get pod \\
+  -l app=web -n demo -o name | head -1)"
+kubectl get pods -l app=web -n demo -w""",
+        ),
+        deck.note(
+            "n-tip",
+            "<b>Rolling update</b> &mdash; watch old Pods terminate as new ones become "
+            "Ready. Nothing is ever all-down-then-all-up.",
+        )
+        + deck.note(
+            "n-warn",
+            "This is scratch work on <code>nginx</code>, so it lives in <code>demo</code> "
+            "&mdash; never in <code>vote</code>. The Voting App namespace stays clean.",
+            style="margin-top:14px",
+        ),
+        ratio="1.3fr 1fr",
+        gap=32,
+    ),
+    eyebrow="Lab &middot; Workloads",
+    kicker="The full lifecycle of a real workload &mdash; in eight commands.",
+    notes="The money lab &mdash; do it live. Create a Deployment, scale it, ship a new image "
+          "and watch the rolling update, then break it and roll back. Finish with the "
+          "self-heal demo: delete a Pod in one pane while get pods -w runs in another, and "
+          "watch the count snap back. This is the moment Kubernetes clicks for people. "
+          "Everything here is disposable and stays in the demo namespace.",
+    day=2,
+)
+
+NODEPORT_LAB = deck.lab(
+    "Expose it with a Service &amp; curl it",
+    deck.two(
+        deck.term(
+            "expose + curl, then clean up",
+            """# NodePort on our mapped port 30080
+cat <<'EOF' | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata: {name: web-np, namespace: demo}
+spec:
+  type: NodePort
+  selector: {app: web}
+  ports:
+  - {port: 80, targetPort: 80, nodePort: 30080}
+EOF
+
+# from inside the cluster, by name
+kubectl run c --rm -it -n demo --image=curlimages/curl \\
+  --restart=Never -- curl -s http://web-np | head -n1
+
+# from the VPS host (kind mapped 30080)
+curl -s http://localhost:30080 | head -n1
+
+# GIVE THE PORT BACK - the Voting App wants it next
+kubectl delete svc web-np -n demo""",
+        ),
+        deck.note(
+            "n-info",
+            "The Service picks Pods by <code>selector: app=web</code> and load-balances "
+            "across them. <b>Inside</b> the cluster, DNS resolves <code>web-np</code> to "
+            "the Service IP; <b>outside</b>, kind forwards the VPS&rsquo;s "
+            "<code>:30080</code> into the node.",
+        )
+        + deck.note(
+            "n-warn",
+            "A <code>nodePort</code> is cluster-wide and can only be held by <b>one</b> "
+            "Service. Skip that last <code>delete</code> and the Voting App&rsquo;s own "
+            "Service fails with <code>provided port is already allocated</code>.",
+            title="Delete it",
+            style="margin-top:14px",
+        ),
+        ratio="1.25fr 1fr",
+        gap=32,
+    ),
+    eyebrow="Lab &middot; Networking",
+    kicker="A <b>NodePort</b> on the fixed port we mapped (30080), reachable from inside "
+           "the cluster and from the VPS.",
+    notes="Give the Deployment a stable front door and actually hit it. Two proofs: from "
+          "inside the cluster a throwaway curl Pod reaches the Service by name, and from "
+          "the VPS itself we curl the NodePort we mapped at cluster-create time (30080). "
+          "Point out that the Pod IPs behind the Service can churn and the curl still "
+          "works. Do not skip the cleanup line -- 30080 is a cluster-wide singleton and "
+          "the Voting App claims it two slides from now.",
+    day=2,
+)
+
 # A lead-in for the Day 4 distributions deep-dive (old divider 13 stays on Day 1).
 DIST_DIVIDER = deck.divider(
     "00",
@@ -178,12 +289,12 @@ ORDER += d2["deploy_extra"]               # selector immutability
 ORDER += d2["vadeploy"]                   # Voting App -> Deployments
 ORDER += keep(38)                         # scale / roll out / roll back
 ORDER += d2["rollouts"]                   # status/history/restart, maxSurge
-ORDER += keep(39)                         # workloads lab
+ORDER += [WORKLOAD_LAB]                   # replaces old slide 39 (ran in `vote`)
 ORDER += d2["varollout"]                  # rollout + rollback on vote
 ORDER += keep(40, 41, 42, 43, 44)         # Networking + Services
 ORDER += d2["svc_extra"]                  # headless, Endpoints, the four ports
 ORDER += d2["dns"]                        # cluster DNS deep + lab
-ORDER += keep(46)                         # NodePort lab
+ORDER += [NODEPORT_LAB]                   # replaces old slide 46 (stole nodePort 30080)
 ORDER += d2["vasvc"]                      # Services for the whole app
 ORDER += d2["multicontainer"]             # multi-container, init, sidecar
 ORDER += d2["vainit"]                     # init container for worker
